@@ -347,6 +347,7 @@ classDiagram
 ```mermaid
 flowchart TD
     ROOT[dataengineering/] --> README[README.md<br/>Entry point]
+    ROOT --> SCRIPTS[scripts/<br/>Test scripts]
     ROOT --> DOCS[docs/<br/>Documentation]
     ROOT --> M01[01-medallion-fundamentals/]
     ROOT --> M02[02-auto-loader/]
@@ -378,6 +379,8 @@ flowchart TD
 ```
 dataengineering/
 ├── README.md                                    # Entry point + documentation index
+├── scripts/                                      # Local dev scripts
+│   └── test_databricks_connect.py              # Mac M3 Pro pipeline test script
 ├── docs/                                        # Conceptual documentation
 │   ├── medallion-architecture.md                # Medallion Architecture guide
 │   ├── data-engineering-concepts.md             # Core data engineering principles
@@ -451,7 +454,7 @@ demo (catalog)
 - Permissions to create catalogs, schemas, and volumes
 - **Serverless compute** (auto-selected) or a Databricks cluster
 - For **04 — SDP**: Spark Declarative Pipelines enabled in the workspace
-- For **11 — Local dev on Mac M3 Pro**: Python 3.11+, `pip install databricks-connect mlflow scikit-learn torch`
+- For **11 — Local dev on Mac M3 Pro**: Python 3.12+, `pip install databricks-connect databricks-sdk mlflow scikit-learn torch`
 - **No paid workspace?** Use [Databricks Free Edition](https://www.databricks.com/learn/free-edition) — free, no credit card required
 
 ## Running the Notebooks
@@ -577,7 +580,7 @@ Module 11 includes full instructions for running the ML pipeline locally on Mac 
 ```mermaid
 flowchart LR
     subgraph "Mac M3 Pro (Local)"
-        PY[Python venv<br/>+ Databricks Connect] --> MPS[PyTorch MPS<br/>Apple GPU]
+        PY[Python 3.12 venv<br/>+ Databricks Connect] --> MPS[PyTorch MPS<br/>Apple GPU]
         PY --> MLF_L[MLflow local<br/>tracking]
     end
     subgraph "Databricks Cloud"
@@ -589,12 +592,84 @@ flowchart LR
     MLF_L -->|register_model| REG
 ```
 
+### Step 1: Create virtual environment
+
 ```bash
-# Quick setup on Mac M3 Pro
-python3.11 -m venv ~/databricks-env && source ~/databricks-env/bin/activate
-pip install databricks-connect mlflow scikit-learn pandas torch
-databricks configure --host https://<your-workspace>.cloud.databricks.com
+python3.12 -m venv ~/databricks-env
+source ~/databricks-env/bin/activate
 ```
+
+### Step 2: Install packages
+
+```bash
+pip install databricks-connect databricks-sdk mlflow scikit-learn pandas torch
+```
+
+### Step 3: Configure authentication
+
+Generate a Personal Access Token from your workspace:
+**Settings → Developer → Access tokens → Generate new token**
+
+Then create `~/.databrickscfg` (replace with your values):
+
+```bash
+cat > ~/.databrickscfg << 'EOF'
+[DEFAULT]
+host  = https://<your-workspace>.cloud.databricks.com
+token = <your-personal-access-token>
+EOF
+```
+
+### Step 4: Set serverless environment variable
+
+```bash
+export DATABRICKS_CONNECT_SERVERLESS=1
+```
+
+Add to `~/.zshrc` for persistence:
+```bash
+echo 'export DATABRICKS_CONNECT_SERVERLESS=1' >> ~/.zshrc
+```
+
+### Step 5: Test the connection
+
+```bash
+python3.12 -c "
+from databricks.connect import DatabricksSession
+spark = DatabricksSession.builder.serverless(True).getOrCreate()
+print(spark.sql('SELECT 1').collect())
+"
+```
+
+Expected output: `[Row(1=1)]`
+
+### Step 6: Run the full pipeline test
+
+This repo includes a test script that verifies the entire data pipeline from your Mac to Databricks:
+
+```bash
+source ~/databricks-env/bin/activate
+export DATABRICKS_CONNECT_SERVERLESS=1
+python3.12 scripts/test_databricks_connect.py
+```
+
+The script tests:
+1. Environment check (packages, config, env vars)
+2. Spark connection to serverless compute
+3. Mini Bronze → Silver → Gold pipeline (create tables, write, transform, aggregate)
+4. PyTorch MPS (Apple Silicon GPU acceleration)
+5. MLflow experiment tracking
+6. Databricks SDK (workspace API access)
+
+### Troubleshooting
+
+| Issue | Fix |
+|------|-----|
+| `No module named 'databricks'` | Use venv Python: `~/databricks-env/bin/python3` |
+| `cannot configure default credentials` | Ensure `~/.databrickscfg` has `host` and `token` |
+| `Cluster id or serverless are required` | Run: `export DATABRICKS_CONNECT_SERVERLESS=1` |
+| `DATABRICKS_HOST` env conflicts | Run: `unset DATABRICKS_HOST` (let SDK read `.databrickscfg`) |
+| Old CLI `auth` command not found | Install new CLI: `curl -fsSL https://raw.githubusercontent.com/databricks/cli/main/scripts/install \| bash` |
 
 See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the complete guide including PyTorch with Apple MPS (Metal Performance Shaders).
 

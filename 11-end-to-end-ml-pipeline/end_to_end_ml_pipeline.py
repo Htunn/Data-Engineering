@@ -35,37 +35,61 @@
 # MAGIC
 # MAGIC This section covers setting up your Mac M3 Pro for Databricks development. All subsequent cells work in **both** cloud and local modes.
 # MAGIC
-# MAGIC ### Prerequisites
+# MAGIC ### Step 1: Create virtual environment
 # MAGIC
 # MAGIC ```bash
-# MAGIC # 1. Install Homebrew (if not installed)
-# MAGIC /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# MAGIC # Install Python 3.12 (if not already installed)
+# MAGIC brew install python@3.12
 # MAGIC
-# MAGIC # 2. Install Python 3.11+ and Java 17
-# MAGIC brew install python@3.11 openjdk@17
-# MAGIC
-# MAGIC # 3. Create a virtual environment
-# MAGIC python3.11 -m venv ~/databricks-env
+# MAGIC # Create venv
+# MAGIC python3.12 -m venv ~/databricks-env
 # MAGIC source ~/databricks-env/bin/activate
-# MAGIC
-# MAGIC # 4. Install Databricks Connect (Spark Connect protocol)
-# MAGIC pip install databricks-connect
-# MAGIC
-# MAGIC # 5. Install ML libraries
-# MAGIC pip install mlflow scikit-learn pandas numpy matplotlib
-# MAGIC
-# MAGIC # 6. (Optional) PyTorch with Apple MPS support
-# MAGIC pip install torch torchvision
 # MAGIC ```
 # MAGIC
-# MAGIC ### Configure Databricks Connect
+# MAGIC ### Step 2: Install packages
 # MAGIC
 # MAGIC ```bash
-# MAGIC # Authenticate with your workspace
-# MAGIC databricks configure --host https://<your-workspace>.cloud.databricks.com
+# MAGIC pip install databricks-connect databricks-sdk mlflow scikit-learn pandas numpy matplotlib torch
+# MAGIC ```
 # MAGIC
-# MAGIC # Test connection
-# MAGIC python -c "from databricks.connect import DatabricksSession; spark = DatabricksSession.builder.getOrCreate(); print(spark.sql('SELECT 1').collect())"
+# MAGIC ### Step 3: Configure authentication
+# MAGIC
+# MAGIC Generate a Personal Access Token from your workspace:
+# MAGIC **Settings -> Developer -> Access tokens -> Generate new token**
+# MAGIC
+# MAGIC Create `~/.databrickscfg` (replace with your values):
+# MAGIC ```bash
+# MAGIC cat > ~/.databrickscfg << 'EOF'
+# MAGIC [DEFAULT]
+# MAGIC host  = https://<your-workspace>.cloud.databricks.com
+# MAGIC token = <your-personal-access-token>
+# MAGIC EOF
+# MAGIC ```
+# MAGIC
+# MAGIC ### Step 4: Set serverless environment variable
+# MAGIC
+# MAGIC ```bash
+# MAGIC export DATABRICKS_CONNECT_SERVERLESS=1
+# MAGIC # Add to ~/.zshrc for persistence:
+# MAGIC echo 'export DATABRICKS_CONNECT_SERVERLESS=1' >> ~/.zshrc
+# MAGIC ```
+# MAGIC
+# MAGIC ### Step 5: Test the connection
+# MAGIC
+# MAGIC ```bash
+# MAGIC python3.12 -c "
+# MAGIC from databricks.connect import DatabricksSession
+# MAGIC spark = DatabricksSession.builder.serverless(True).getOrCreate()
+# MAGIC print(spark.sql('SELECT 1').collect())
+# MAGIC "
+# MAGIC ```
+# MAGIC
+# MAGIC Expected: `[Row(1=1)]`
+# MAGIC
+# MAGIC ### Step 6: Run the full pipeline test
+# MAGIC
+# MAGIC ```bash
+# MAGIC python3.12 scripts/test_databricks_connect.py
 # MAGIC ```
 # MAGIC
 # MAGIC ### PyTorch on Apple Silicon (M3 Pro MPS)
@@ -81,16 +105,14 @@
 # MAGIC print(f"Using device: {device}")
 # MAGIC ```
 # MAGIC
-# MAGIC ### Project Structure for Local Dev
+# MAGIC ### Troubleshooting
 # MAGIC
-# MAGIC ```
-# MAGIC ~/ml-projects/
-# MAGIC ├── .env                    # Databricks connection config
-# MAGIC ├── connect.py             # Databricks Connect helper
-# MAGIC ├── data/                   # Local data cache
-# MAGIC ├── models/                 # Saved models
-# MAGIC └── mlruns/                 # Local MLflow runs
-# MAGIC ```
+# MAGIC | Issue | Fix |
+# MAGIC |------|-----|
+# MAGIC | `No module named 'databricks'` | Use venv Python: `~/databricks-env/bin/python3` |
+# MAGIC | `cannot configure default credentials` | Ensure `~/.databrickscfg` has `host` and `token` |
+# MAGIC | `Cluster id or serverless are required` | Run: `export DATABRICKS_CONNECT_SERVERLESS=1` |
+# MAGIC | `DATABRICKS_HOST` env conflicts | Run: `unset DATABRICKS_HOST` (let SDK read `.databrickscfg`) |
 # MAGIC
 # MAGIC ---
 
@@ -119,14 +141,16 @@ else:
     print("💻 Running locally on Mac M3 Pro")
     try:
         from databricks.connect import DatabricksSession
-        spark = DatabricksSession.builder.getOrCreate()
-        print("   Connected to Databricks via Databricks Connect")
+        spark = DatabricksSession.builder.serverless(True).getOrCreate()
+        print("   Connected to Databricks via Databricks Connect (serverless)")
     except ImportError:
         print("   ⚠️  Databricks Connect not installed")
         print("   Install with: pip install databricks-connect")
     except Exception as e:
         print(f"   ⚠️  Connection error: {e}")
-        print("   Run: databricks configure --host https://<workspace>.cloud.databricks.com")
+        print("   Fix: export DATABRICKS_CONNECT_SERVERLESS=1")
+        print("   Fix: unset DATABRICKS_HOST (let SDK read ~/.databrickscfg)")
+        print("   Fix: check ~/.databrickscfg has host and token")
 
 # Verify Spark works
 test_df = spark.sql("SELECT 1 AS test")
