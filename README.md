@@ -3,6 +3,10 @@
 A hands-on learning resource for the Databricks platform covering Data Engineering, SQL, AI/ML, Governance, and GenAI. Each module is a self-contained notebook with runnable source code and conceptual documentation.
 
 > **This repo is for learning only** — not a production template. The docs are conceptual references, not business scenarios.
+>
+> **Vendor-agnostic**: While the code runs on Databricks, the data engineering patterns (medallion architecture, ETL/ELT, CDC, SCD2, streaming, feature engineering, MLOps, data quality, governance) are applicable across any data platform (Snowflake, BigQuery, Synapse, Dremio). The Databricks implementation serves as a concrete reference — the concepts transfer.
+>
+> **Free Edition**: To follow along without a paid workspace, use [Databricks Free Edition](https://www.databricks.com/learn/free-edition).
 
 ## Use Cases Overview
 
@@ -38,6 +42,7 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | [Medallion Architecture](docs/medallion-architecture.md) | Bronze/Silver/Gold pattern — layers, quality tiers, component & UML class diagrams, anti-patterns |
 | [Data Engineering Concepts](docs/data-engineering-concepts.md) | ETL/ELT, idempotency, data quality, lineage, incremental processing, streaming patterns, orchestration |
 | [Databricks Platform Overview](docs/databricks-platform-overview.md) | Compute, storage, governance, AI/ML components, UML class diagram, learning path flowchart |
+| [Module Domain Guide](docs/module-domain-guide.md) | What each module teaches: domain concepts, why it matters, key terms, vendor-agnostic equivalents |
 
 ## Coverage Matrix
 
@@ -150,7 +155,9 @@ graph TB
         S_FE[features schema]
         S_GenAI[genai schema]
         S_SQL[sql_demo schema]
-    S_ML2[ml_pipeline schema]
+        S_ML2[ml_pipeline schema]
+        S_Utils[utils schema]
+        S_LB[lakebase schema]
     end
 
     subgraph Compute [Compute]
@@ -167,12 +174,15 @@ graph TB
     SQL --> S_SQL
     FE --> S_FE
     RAG --> S_GenAI
-    E2E --> S_ML2[ml_pipeline schema]
+    E2E --> S_ML2
+    UT --> S_Utils
+    LB --> S_LB
     MLF --> Compute
 
     DataEng --> Compute
     DataPlatform --> Compute
     AI --> Compute
+    BI --> Compute
     Storage --> Compute
 ```
 
@@ -266,6 +276,59 @@ classDiagram
         +pytorch_mps_train() void
     }
 
+    class Module12 {
+        +create_job() void
+        +schedule_job() void
+        +deploy_dab() void
+    }
+
+    class Module13 {
+        +query_billing() DataFrame
+        +query_audit() DataFrame
+        +setup_monitor() void
+    }
+
+    class Module14 {
+        +fs_operations() void
+        +create_widgets() void
+        +get_secrets() string
+    }
+
+    class Module15 {
+        +create_share() void
+        +create_recipient() void
+        +grant_access() void
+    }
+
+    class Module16 {
+        +create_dashboard() void
+        +create_alert() void
+        +setup_genie() void
+    }
+
+    class Module17 {
+        +deploy_streamlit() void
+        +deploy_flask() void
+    }
+
+    class Module18 {
+        +list_repos() List
+        +switch_branch() void
+        +cicd_pipeline() void
+    }
+
+    class Module19 {
+        +create_connection() void
+        +configure_ingestion() void
+    }
+
+    class Module20 {
+        +create_project() void
+        +create_branch() void
+        +create_endpoint() void
+        +reverse_etl() void
+    }
+
     Module01 --> Module02 : prerequisites
     Module02 --> Module04 : ingestion for SDP
     Module01 --> Module03 : Delta foundations
@@ -277,6 +340,7 @@ classDiagram
     Module09 --> Module11 : features for E2E
     Module11 --> Module10 : GenAI integration
     Module05 ..> Module01 : governs all
+```
 
 ## Project Structure
 
@@ -308,6 +372,7 @@ flowchart TD
     DOCS --> D1[medallion-architecture.md]
     DOCS --> D2[data-engineering-concepts.md]
     DOCS --> D3[databricks-platform-overview.md]
+    DOCS --> D4[module-domain-guide.md]
 ```
 
 ```
@@ -316,7 +381,8 @@ dataengineering/
 ├── docs/                                        # Conceptual documentation
 │   ├── medallion-architecture.md                # Medallion Architecture guide
 │   ├── data-engineering-concepts.md             # Core data engineering principles
-│   └── databricks-platform-overview.md           # Platform components overview
+│   ├── databricks-platform-overview.md           # Platform components overview
+│   └── module-domain-guide.md                    # What each module domain teaches
 ├── 01-medallion-fundamentals/
 │   └── simple_medallion_architecture.ipynb       # 01 — Bronze/Silver/Gold basics
 ├── 02-auto-loader/
@@ -386,6 +452,7 @@ demo (catalog)
 - **Serverless compute** (auto-selected) or a Databricks cluster
 - For **04 — SDP**: Spark Declarative Pipelines enabled in the workspace
 - For **11 — Local dev on Mac M3 Pro**: Python 3.11+, `pip install databricks-connect mlflow scikit-learn torch`
+- **No paid workspace?** Use [Databricks Free Edition](https://www.databricks.com/learn/free-edition) — free, no credit card required
 
 ## Running the Notebooks
 
@@ -499,8 +566,9 @@ demo (catalog)
 Start with the conceptual documentation before diving into the notebooks:
 
 1. [Medallion Architecture](docs/medallion-architecture.md) — Understand the Bronze/Silver/Gold pattern
-2. [Data Engineering Concepts](docs/data-engineering-concepts.md) — Core principles: idempotency, quality, lineage, streaming
+2. [Data Engineering Concepts](docs/data-engineering-concepts.md) — What is data engineering, its role in ML and GenAI, plus core principles
 3. [Databricks Platform Overview](docs/databricks-platform-overview.md) — Platform components, compute, storage, and learning path
+4. [Module Domain Guide](docs/module-domain-guide.md) — What each module's domain is (orchestration, governance, RAG, etc.) with vendor-agnostic equivalents
 
 ## Mac M3 Pro — Local Development
 
