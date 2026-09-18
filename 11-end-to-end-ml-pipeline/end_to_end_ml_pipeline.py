@@ -37,6 +37,14 @@
 # MAGIC
 # MAGIC ### Step 1: Create virtual environment
 # MAGIC
+# MAGIC **Quick setup with Makefile (recommended):**
+# MAGIC ```bash
+# MAGIC # One-command setup + configure + test
+# MAGIC make setup && make configure && make test
+# MAGIC ```
+# MAGIC
+# MAGIC **Or manual step-by-step:**
+# MAGIC
 # MAGIC ```bash
 # MAGIC # Install Python 3.12 (if not already installed)
 # MAGIC brew install python@3.12

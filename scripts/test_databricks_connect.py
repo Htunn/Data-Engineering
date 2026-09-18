@@ -31,7 +31,6 @@ Auth config (~/.databrickscfg):
 
 import os
 import sys
-import time
 from datetime import datetime
 
 # ---------------------------------------------------------------------------
@@ -46,9 +45,10 @@ def check_environment():
 
     checks = []
 
-    # Python version
+    # Python version (tuple comparison, not string — "3.9" > "3.10" as strings!)
     py_version = sys.version.split()[0]
-    checks.append(("Python version", py_version, py_version >= "3.10"))
+    py_parts = tuple(int(x) for x in py_version.split(".")[:2])
+    checks.append(("Python version", py_version, py_parts >= (3, 10)))
 
     # DATABRICKS_CONNECT_SERVERLESS
     serverless = os.environ.get("DATABRICKS_CONNECT_SERVERLESS", "not set")
@@ -140,7 +140,6 @@ def test_mini_pipeline(spark):
 
     catalog = "demo"
     schema = "connect_test"
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     try:
         # Create catalog and schema

@@ -347,6 +347,7 @@ classDiagram
 ```mermaid
 flowchart TD
     ROOT[dataengineering/] --> README[README.md<br/>Entry point]
+    ROOT --> MAKE[Makefile<br/>Setup automation]
     ROOT --> SCRIPTS[scripts/<br/>Test scripts]
     ROOT --> DOCS[docs/<br/>Documentation]
     ROOT --> M01[01-medallion-fundamentals/]
@@ -379,6 +380,7 @@ flowchart TD
 ```
 dataengineering/
 ├── README.md                                    # Entry point + documentation index
+├── Makefile.py                                  # Mac M3 Pro setup automation (rename to Makefile locally)
 ├── scripts/                                      # Local dev scripts
 │   └── test_databricks_connect.py              # Mac M3 Pro pipeline test script
 ├── docs/                                        # Conceptual documentation
@@ -592,6 +594,31 @@ flowchart LR
     MLF_L -->|register_model| REG
 ```
 
+### Quick Setup with Makefile
+
+The fastest way to set up everything — the Makefile automates venv creation, package installation, authentication, and testing:
+
+```bash
+# 1. One-command setup: create venv + install all packages
+make setup
+
+# 2. Interactive: set workspace URL and token in ~/.databrickscfg
+make configure
+
+# 3. Run the full 6-step pipeline test
+make test
+
+# Or run individual tests
+make test-spark    # Spark connection only
+make test-pytorch  # PyTorch MPS (Apple Silicon GPU)
+make test-mlflow   # MLflow tracking
+make test-sdk      # Databricks SDK (workspace API)
+make info          # Show current environment info
+make clean         # Remove venv and test artifacts
+```
+
+> **Note**: The Makefile is saved as `Makefile.py` in the Databricks workspace. Rename to `Makefile` (no extension) locally: `cp Makefile.py Makefile`
+
 ### Step 1: Create virtual environment
 
 ```bash
@@ -692,7 +719,7 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - **Git Integration**: Git folders, branch management, CI/CD pipelines with DAB
 - **Lakeflow Connect**: Managed ingestion from external sources (Salesforce, MySQL, Google Ads, etc.)
 - **Lakebase**: Managed PostgreSQL with autoscaling, branching, and reverse ETL
-- **Local Development**: Databricks Connect on Mac M3 Pro with Apple Silicon GPU acceleration
+- **Local Development**: Databricks Connect on Mac M3 Pro with Apple Silicon GPU acceleration, Makefile for automated setup, and test script for full pipeline verification
 
 ## References
 
