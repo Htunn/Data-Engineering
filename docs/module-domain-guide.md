@@ -1,6 +1,6 @@
 # Module Domain Guide — What Each Module Teaches
 
-This document explains the domain concepts behind each of the 20 modules. For each module, we answer: **What is this domain? Why does it matter? What are the key concepts?**
+This document explains the domain concepts behind each of the 21 modules. For each module, we answer: **What is this domain? Why does it matter? What are the key concepts?**
 
 Each section also includes **vendor-agnostic equivalents** — the same concepts apply across Snowflake, BigQuery, Synapse, Dremio, and other data platforms. This repo uses Databricks as a concrete implementation reference; the patterns transfer.
 
@@ -286,6 +286,20 @@ Lakebase is Databricks' managed PostgreSQL offering with autoscaling, database b
 
 ---
 
+## Module 21 — AI Platform: Raw Data to LLM Inference
+
+**What is an AI Platform?**
+
+An AI Platform is a unified system that covers the entire AI lifecycle — from raw data ingestion through data processing, feature engineering, traditional ML, and all the way to LLM inference with RAG. It is not a single tool but the **integration of all AI capabilities** into one coherent pipeline with shared governance, compute, and orchestration.
+
+**Why it matters**: Most organizations build ML and GenAI in silos — data engineers handle pipelines, ML engineers handle models, and GenAI engineers handle RAG and LLMs. This creates data inconsistency, duplicated effort, and governance gaps. A unified AI platform eliminates these silos: the same Delta tables feed both ML training and RAG retrieval; the same Unity Catalog governs models, tables, and LLM endpoints; the same Lakeflow Jobs orchestrate the full pipeline.
+
+**Key concepts**: Medallion for AI (Bronze raw data → Silver cleaned → Gold ML features + text chunks), ML training with MLflow (traditional models), LLM data preparation (document chunking, prompt templates, fine-tuning datasets), embeddings & Vector Search (similarity retrieval infrastructure), RAG pipeline (retrieve → augment → generate), LLM serving (Foundation Model APIs, batch inference with ai_query), AI Gateway (rate limiting, fallback, usage logging, PII guardrails), end-to-end orchestration (Lakeflow Jobs DAG with parallel ML + GenAI paths, DAB for CI/CD).
+
+**Vendor-agnostic equivalent**: A full AI platform stack — e.g., Snowflake + Cortex + Streamlit, Google Cloud (BigQuery + Vertex AI + Pinecone), AWS (Redshift + SageMaker + Bedrock + OpenSearch), Azure (Synapse + Azure ML + OpenAI + AI Search). Databricks provides all of these capabilities natively on one platform without data movement.
+
+---
+
 ## Cross-Module Domain Summary
 
 | Domain | Modules | Core Question Answered |
@@ -305,3 +319,4 @@ Lakebase is Databricks' managed PostgreSQL offering with autoscaling, database b
 | DevTools | 14, 18 | How do we develop and version code? |
 | Apps | 17 | How do we build data applications? |
 | Operational DB | 20 | How do we serve data to applications? |
+| AI Platform | 21 | How do all AI capabilities work as one system? |

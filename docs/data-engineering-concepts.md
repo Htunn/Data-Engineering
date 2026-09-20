@@ -27,7 +27,7 @@ flowchart LR
 | **Data Quality** | Validate, enforce constraints, monitor drift | 04 (SDP), 13 (Monitoring) |
 | **Data Pipeline Orchestration** | Schedule, chain, retry, monitor workflows | 12 (Jobs & DAB) |
 | **Data Governance** | Access control, lineage, auditing, masking | 05 (UC Governance) |
-| **Data Serving** | BI dashboards, ML features, APIs, GenAI | 16 (Dashboards), 09 (Features), 10 (GenAI) |
+| **Data Serving** | BI dashboards, ML features, APIs, GenAI | 16 (Dashboards), 09 (Features), 10 (GenAI), 21 (AI Platform) |
 
 ### Why Data Engineering Matters
 
@@ -110,6 +110,7 @@ flowchart LR
 | **LLM serving** | Serve foundation models, manage latency | 10 |
 | **Quality monitoring** | Track embedding drift, retrieval relevance | 13 |
 | **Governance** | Track which documents were used for which answer | 05 |
+| **AI Platform integration** | Unified pipeline: data → ML → GenAI → LLM inference | 21 |
 
 **Key insight**: RAG is a data pipeline — ingest, chunk, embed, index, retrieve, augment. Every step is a data engineering problem. The LLM is only the final transformation.
 
@@ -121,6 +122,45 @@ Data engineering does not stop after deployment. GenAI systems create new data e
 2. **Evaluation**: Automated quality scoring (faithfulness, relevance) requires data pipelines
 3. **Fine-tuning data**: User feedback and corrections become training data for future models
 4. **Cost monitoring**: Token usage and LLM costs need the same billing pipelines as any cloud resource
+
+---
+
+## Data Engineering in the AI Platform Landscape
+
+An AI Platform is the integration layer — it unifies data engineering, ML, and GenAI into one pipeline with shared governance, compute, and orchestration. Module 21 demonstrates this integration.
+
+```mermaid
+flowchart LR
+    subgraph "AI Platform Pipeline"
+        direction LR
+        D[Raw Data<br/>Structured + Unstructured] --> M[Medallion<br/>Bronze → Silver → Gold]
+        M --> ML[ML Path<br/>Features → Train → Register]
+        M --> GenAI[GenAI Path<br/>Chunks → Embed → VS Index]
+        ML --> S[Inference<br/>Model Serving + LLM APIs]
+        GenAI --> S
+        S --> G[AI Gateway<br/>Rate limit, fallback, log]
+    end
+    subgraph "Cross-Cutting"
+        UC[Unity Catalog] -.-> M
+        UC -.-> ML
+        UC -.-> GenAI
+        JOB[Jobs + DAB] -.-> M
+        JOB -.-> ML
+        JOB -.-> GenAI
+    end
+```
+
+### What Makes It a "Platform" vs Separate Tools
+
+| Aspect | Separate Tools | Unified AI Platform |
+|--------|---------------|---------------------|
+| **Data** | ETL tool → ML store → Vector DB (copies at each step) | One Delta Lake — same tables feed ML and RAG |
+| **Governance** | Separate policies for data, models, LLMs | Unity Catalog governs all: tables, models, endpoints |
+| **Compute** | Different clusters for ETL, training, serving | Serverless compute scales across all workloads |
+| **Orchestration** | Airflow chains tools with brittle integrations | Lakeflow Jobs + DAB orchestrate the full pipeline |
+| **Monitoring** | Different dashboards for data, ML, LLM | System tables + Lakehouse Monitoring cover all |
+
+**Key insight**: The AI Platform is not a new tool — it is the **integration** of existing data, ML, and GenAI capabilities with shared governance and orchestration. Module 21 shows how all the pieces from modules 01-20 fit together.
 
 ---
 

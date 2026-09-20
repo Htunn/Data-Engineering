@@ -36,6 +36,7 @@ graph TB
         G2[Star schemas / facts]
         G3[Feature tables for ML]
         G4[Dashboard-ready views]
+        G5[Text chunks for RAG]
     end
 
     subgraph Consumers [Data Consumers]
@@ -59,11 +60,13 @@ graph TB
     SV4 --> G2
     SV4 --> G3
     SV4 --> G4
+    SV4 --> G5
 
     G1 --> C1
     G2 --> C1
     G3 --> C2
     G4 --> C1
+    G5 --> C2
     G2 --> C3
     G2 --> C4
 ```
@@ -119,13 +122,14 @@ graph TB
 | **Transformations** | GROUP BY aggregations, joins, business logic |
 | **Quality** | Strict enforcement — `expect_or_fail` on business rules |
 | **Storage** | Delta tables, materialized views, or feature tables |
-| **Consumers** | Dashboards, ML models, external sharing |
-| **Use case** | Reporting, BI, ML training, API serving |
+| **Consumers** | Dashboards, ML models, external sharing | (incl. text chunks for GenAI/RAG) |
+| **Use case** | Reporting, BI, ML training, API serving, RAG retrieval |
 
 **Design principles:**
 - Model for specific business use cases (not generic)
 - Create star schemas for BI (fact + dimension tables)
 - Create feature tables for ML (with point-in-time correctness)
+- Create text chunks for GenAI/RAG (document chunking, embedding-ready)
 - Enforce strict data quality — failures should be investigated
 - Partition by commonly filtered columns
 
@@ -211,6 +215,7 @@ classDiagram
 | Small dataset, single consumer | ⚠️ Maybe | Overkill for tiny datasets — a single view may suffice |
 | Real-time alerting | ⚠️ Maybe | Use streaming directly to Gold (skip Silver if latency-critical) |
 | ML feature pipeline | ✅ Yes | Bronze/Silver for raw features, Gold for curated feature tables |
+| AI Platform (data → ML → GenAI) | ✅ Yes | Gold serves both ML features and text chunks for RAG |
 
 ## Common Anti-Patterns
 
@@ -228,6 +233,7 @@ classDiagram
 | [01-medallion-fundamentals](../01-medallion-fundamentals/simple_medallion_architecture) | Bronze → Silver → Gold | Simple inline data, `ops` catalog |
 | [02-auto-loader](../02-auto-loader/auto_loader_streaming) | Bronze → Silver | Auto Loader + `foreachBatch` + MERGE |
 | [04-sdp-pipelines](../04-sdp-pipelines/sdp_medallion_pipeline) | Bronze → Silver → Gold | SDP with @dlt expectations |
+| [21-ai-platform](../21-ai-platform/ai_platform_demo) | Bronze → Silver → Gold | Full AI platform: ML features + text chunks for RAG |
 
 ## References
 

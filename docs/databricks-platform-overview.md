@@ -37,6 +37,7 @@ graph TB
         MS[Model Serving<br/>Real-time inference]
         VS[Vector Search<br/>RAG & similarity]
         AG[Agent Bricks<br/>GenAI applications]
+        GW[AI Gateway<br/>Rate limit, fallback]
     end
 
     subgraph DataEng [Data Engineering]
@@ -128,6 +129,7 @@ graph TB
 | **Agent Bricks** | Managed GenAI apps (Knowledge Assistant, Supervisor Agent) |
 | **Mosaic AI Agent Framework** | Build custom AI agents with tools |
 | **AI Functions (SQL)** | `ai_query`, `ai_forecast`, `ai_analyze_sentiment` in SQL |
+| **AI Platform Integration** | Unified pipeline: raw data → ML training → embeddings → RAG → LLM inference → AI Gateway |
 
 ## UML Class Diagram — Key Platform Entities
 
@@ -241,7 +243,10 @@ flowchart TD
     M01 --> M07[07 — MLflow Tracking<br/>Intermediate]
     M07 --> M09[09 — Feature Engineering<br/>Advanced]
     M07 --> M10[10 — GenAI / RAG<br/>Advanced]
-    
+    M10 --> M21[21 — AI Platform<br/>Advanced]
+    M11 --> M21
+    M12 --> M21
+
     style START fill:#4CAF10,color:#fff
     style M01 fill:#2196F3,color:#fff
     style M02 fill:#FF9800,color:#fff
@@ -253,6 +258,7 @@ flowchart TD
     style M08 fill:#FF9800,color:#fff
     style M09 fill:#f44336,color:#fff
     style M10 fill:#f44336,color:#fff
+    style M21 fill:#9C27B0,color:#fff
 ```
 
 | Level | Color | Modules |
@@ -260,3 +266,4 @@ flowchart TD
 | Beginner | 🟦 Blue | 01 — Medallion Fundamentals |
 | Intermediate | 🟧 Orange | 02, 07, 08 |
 | Advanced | 🟥 Red | 03, 04, 05, 06, 09, 10 |
+| Platform Integration | 🟪 Purple | 21 — AI Platform (integrates all) |
