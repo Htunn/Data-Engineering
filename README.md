@@ -84,6 +84,8 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | Secrets Management | 14 | ✅ Covered |
 | Git Integration | 18 | ✅ Covered |
 | Lakebase (Postgres autoscaling) | 20 | ✅ Covered |
+| AI Platform (Raw Data → LLM Inference) | 21 | ✅ Covered |
+| AI Gateway (rate limiting, fallback, logging) | 10, 21 | ✅ Covered |
 
 ### Data Engineering Topics
 
@@ -107,6 +109,7 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | Workflow orchestration | 12 | ✅ Covered |
 | CI/CD with DAB | 12, 18 | ✅ Covered |
 | Data pipeline monitoring | 13 | ✅ Covered |
+| AI Platform integration (data → ML → GenAI) | 21 | ✅ Covered |
 
 ## Architecture — Component Diagram
 
@@ -135,6 +138,7 @@ graph TB
         FE[Feature Engineering<br/>09]
         RAG[GenAI / RAG<br/>10]
         E2E[End-to-End ML<br/>11]
+        AIP[AI Platform<br/>21]
     end
 
     subgraph BI [BI and Apps]
@@ -158,6 +162,7 @@ graph TB
         S_ML2[ml_pipeline schema]
         S_Utils[utils schema]
         S_LB[lakebase schema]
+        S_AIP[ai_platform schema]
     end
 
     subgraph Compute [Compute]
@@ -175,6 +180,7 @@ graph TB
     FE --> S_FE
     RAG --> S_GenAI
     E2E --> S_ML2
+    AIP --> S_AIP
     UT --> S_Utils
     LB --> S_LB
     MLF --> Compute
@@ -329,6 +335,18 @@ classDiagram
         +reverse_etl() void
     }
 
+    class Module21 {
+        +ingest_raw_data() void
+        +bronze_to_silver() void
+        +gold_features_and_chunks() void
+        +train_churn_model() void
+        +generate_embeddings() void
+        +rag_pipeline() string
+        +llm_serving() void
+        +ai_gateway_config() void
+        +orchestrate_pipeline() void
+    }
+
     Module01 --> Module02 : prerequisites
     Module02 --> Module04 : ingestion for SDP
     Module01 --> Module03 : Delta foundations
@@ -340,6 +358,9 @@ classDiagram
     Module09 --> Module11 : features for E2E
     Module11 --> Module10 : GenAI integration
     Module05 ..> Module01 : governs all
+    Module11 --> Module21 : ML for AI platform
+    Module10 --> Module21 : GenAI for AI platform
+    Module12 --> Module21 : orchestration
 ```
 
 ## Project Structure
@@ -370,6 +391,7 @@ flowchart TD
     ROOT --> M18[18-git-integration/]
     ROOT --> M19[19-lakeflow-connect/]
     ROOT --> M20[20-lakebase/]
+    ROOT --> M21[21-ai-platform/]
 
     DOCS --> D1[medallion-architecture.md]
     DOCS --> D2[data-engineering-concepts.md]
@@ -428,6 +450,8 @@ dataengineering/
 │   └── lakeflow_connect_demo.ipynb           # 19 — Managed ingestion connectors
 └── 20-lakebase/
     └── lakebase_demo.ipynb                  # 20 — Lakebase Postgres
+├── 21-ai-platform/
+    └── ai_platform_demo.ipynb              # 21 — AI Platform: raw data → LLM inference
 ```
 
 ## Unity Catalog Structure
@@ -448,6 +472,7 @@ demo (catalog)
 └── ml_pipeline (schema)  # 11 — end-to-end ML pipeline
 ├── utils (schema)       # 14 — notebook utilities
 └── lakebase (schema)    # 20 — Lakebase synced tables
+└── ai_platform (schema) # 21 — AI platform: bronze/silver/gold, embeddings, RAG
 ```
 
 ## Prerequisites
@@ -719,6 +744,7 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - **Git Integration**: Git folders, branch management, CI/CD pipelines with DAB
 - **Lakeflow Connect**: Managed ingestion from external sources (Salesforce, MySQL, Google Ads, etc.)
 - **Lakebase**: Managed PostgreSQL with autoscaling, branching, and reverse ETL
+- **AI Platform**: Raw data to LLM inference — medallion processing, ML training, embeddings, Vector Search, RAG, LLM serving, AI Gateway, orchestration
 - **Local Development**: Databricks Connect on Mac M3 Pro with Apple Silicon GPU acceleration, Makefile for automated setup, and test script for full pipeline verification
 
 ## References
@@ -749,6 +775,8 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - [Git Integration](https://docs.databricks.com/repos/index.html)
 - [Lakeflow Connect](https://docs.databricks.com/ingestion/add-ingestion/index.html)
 - [Lakebase](https://docs.databricks.com/lakebase/index.html)
+- [AI Gateway](https://docs.databricks.com/en/generative-ai/ai-gateway/index.html)
+- [AI Platform](https://www.databricks.com/product/ai-platform)
 
 ## License
 
