@@ -132,5 +132,5 @@ Do NOT pip install these GPU libraries on CPU compute — they require CUDA and 
 - [PEFT (LoRA)](https://huggingface.co/docs/peft/index)
 - [DistilGPT2 Model](https://huggingface.co/distilgpt2)
 - [LoRA Paper](https://arxiv.org/abs/2106.09685)
-- [Databricks GPU Compute](https://docs.databricks.com/en/compute/serverless-gpu.html)
+- [Databricks GPU Compute](https://docs.databricks.com/aws/en/compute/gpu/)
 - [MLflow Model Registry](https://mlflow.org/docs/latest/model-registry.html)
