@@ -44,6 +44,7 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | [Databricks Platform Overview](docs/databricks-platform-overview.md) | Compute, storage, governance, AI/ML components, UML class diagram, learning path flowchart |
 | [Module Domain Guide](docs/module-domain-guide.md) | What each module teaches: domain concepts, why it matters, key terms, vendor-agnostic equivalents |
 | [K8s + Databricks Integration](docs/k8s-databricks-integration.md) | Run pipelines from Kubernetes: 3 patterns (orchestrator, Connect, GitOps), prerequisites, security, troubleshooting |
+| [SLM Training Guide](docs/slm-training-guide.md) | Small Language Model fine-tuning on Databricks GPU: LoRA/PEFT, DistilGPT2, MLflow, UC registration, inference |
 
 ## Coverage Matrix
 
@@ -87,6 +88,7 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | Lakebase (Postgres autoscaling) | 20 | ✅ Covered |
 | AI Platform (Raw Data → LLM Inference) | 21 | ✅ Covered |
 | AI Gateway (rate limiting, fallback, logging) | 10, 21 | ✅ Covered |
+| SLM Fine-Tuning (LoRA/PEFT, MLflow, UC Registry) | 22 | ✅ Covered |
 
 ### Data Engineering Topics
 
@@ -111,6 +113,7 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | CI/CD with DAB | 12, 18 | ✅ Covered |
 | Data pipeline monitoring | 13 | ✅ Covered |
 | AI Platform integration (data → ML → GenAI) | 21 | ✅ Covered |
+| SLM / LLM fine-tuning (LoRA, PEFT, HuggingFace) | 22 | ✅ Covered |
 
 ## Architecture — Component Diagram
 
@@ -393,6 +396,7 @@ flowchart TD
     ROOT --> M19[19-lakeflow-connect/]
     ROOT --> M20[20-lakebase/]
     ROOT --> M21[21-ai-platform/]
+    ROOT --> M22[22-slm-training/]
     ROOT --> K8S[k8s/]
 
     DOCS --> D1[medallion-architecture.md]
@@ -400,6 +404,7 @@ flowchart TD
     DOCS --> D3[databricks-platform-overview.md]
     DOCS --> D4[module-domain-guide.md]
     DOCS --> D5[k8s-databricks-integration.md]
+    DOCS --> D6[slm-training-guide.md]
 ```
 
 ```
@@ -413,7 +418,8 @@ dataengineering/
 │   ├── data-engineering-concepts.md             # Core data engineering principles
 │   ├── databricks-platform-overview.md           # Platform components overview
 │   ├── module-domain-guide.md                    # What each module domain teaches
-│   └── k8s-databricks-integration.md            # K8s + Databricks integration guide
+│   ├── k8s-databricks-integration.md            # K8s + Databricks integration guide
+│   └── slm-training-guide.md                   # SLM fine-tuning guide (LoRA/PEFT)
 ├── k8s/                                          # K8s deployment (Pattern 1)
 │   ├── trigger_pipeline.py                     # Python trigger script (SDK + OAuth M2M)
 │   ├── Dockerfile                              # Lightweight trigger image
@@ -463,6 +469,8 @@ dataengineering/
     └── lakebase_demo.ipynb                  # 20 — Lakebase Postgres
 ├── 21-ai-platform/
     └── ai_platform_demo.ipynb              # 21 — AI Platform: raw data → LLM inference
+├── 22-slm-training/
+│   └── slm_kubernetes_finetune.ipynb        # 22 — SLM fine-tuning (DistilGPT2 + LoRA)
 └── k8s/                                      # K8s + Databricks integration (Pattern 1)
     ├── trigger_pipeline.py                  # SDK trigger script
     ├── Dockerfile                           # Trigger pod image
@@ -491,6 +499,7 @@ demo (catalog)
 ├── utils (schema)       # 14 — notebook utilities
 └── lakebase (schema)    # 20 — Lakebase synced tables
 └── ai_platform (schema) # 21 — AI platform: bronze/silver/gold, embeddings, RAG
+└── slm (schema)         # 22 — SLM training data, model artifacts
 ```
 
 ## Prerequisites
@@ -631,6 +640,17 @@ kubectl apply -f k8s-configmap.yaml && kubectl apply -f k8s-cronjob.yaml
 1. Open `20-lakebase/lakebase_demo.ipynb`
 2. Run all cells in sequence
 3. Covers Lakebase project/branch/endpoint creation, Data API, and reverse ETL to Delta Lake
+
+### 21 — AI Platform (Advanced)
+1. Open `21-ai-platform/ai_platform_demo.ipynb`
+2. Run all cells in sequence
+3. End-to-end AI platform: raw data to medallion, ML training, embeddings, Vector Search, RAG, LLM serving, AI Gateway
+
+### 22 — SLM Training (Advanced)
+1. Open `22-slm-training/slm_kubernetes_finetune.ipynb`
+2. **Requires Serverless GPU compute** (AI v5 base environment)
+3. Run all cells in sequence: data prep, tokenization, LoRA fine-tuning, MLflow logging, UC registration, inference
+4. Fine-tunes DistilGPT2 (82M params) on Kubernetes Q&A data using LoRA/PEFT
 
 ## Documentation
 
@@ -786,6 +806,7 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - **Lakeflow Connect**: Managed ingestion from external sources (Salesforce, MySQL, Google Ads, etc.)
 - **Lakebase**: Managed PostgreSQL with autoscaling, branching, and reverse ETL
 - **AI Platform**: Raw data to LLM inference — medallion processing, ML training, embeddings, Vector Search, RAG, LLM serving, AI Gateway, orchestration
+- **SLM Training**: Domain-specific Small Language Model fine-tuning on GPU serverless (DistilGPT2 + LoRA/PEFT, HuggingFace Trainer, MLflow, UC model registry, inference)
 - **K8s Integration**: Run pipelines from Kubernetes (CronJob + SDK trigger, Databricks Connect, GitOps with DAB). OAuth M2M auth, security hardening
 - **Local Development**: Databricks Connect on Mac M3 Pro with Apple Silicon GPU acceleration, Makefile for automated setup, and test script for full pipeline verification
 
@@ -822,6 +843,10 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - [Databricks OAuth M2M](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m/)
 - [Databricks SDK for Python](https://docs.databricks.com/aws/en/dev-tools/sdk-python/)
 - [CI/CD on Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd/index/)
+- [HuggingFace Transformers](https://huggingface.co/docs/transformers/index)
+- [PEFT (LoRA)](https://huggingface.co/docs/peft/index)
+- [DistilGPT2](https://huggingface.co/distilgpt2)
+- [Databricks GPU Compute](https://docs.databricks.com/en/compute/serverless-gpu.html)
 
 ## License
 
