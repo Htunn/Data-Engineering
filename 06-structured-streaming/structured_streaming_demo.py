@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # DBTITLE 1,Structured Streaming — Overview
 # MAGIC %md
 # MAGIC # Structured Streaming: Real-Time Data Processing
@@ -31,6 +35,7 @@
 
 spark.sql("CREATE CATALOG IF NOT EXISTS demo")
 spark.sql("CREATE SCHEMA IF NOT EXISTS demo.streaming")
+spark.sql("CREATE VOLUME IF NOT EXISTS demo.streaming._checkpoints")
 
 # Drop existing tables
 for t in ["rate_output", "windowed_agg", "dedup_output", "joined_output"]:
@@ -63,25 +68,22 @@ rate_stream = (
     spark.readStream.format("rate")
     .option("rowsPerSecond", 10)
     .option("numPartitions", 3)
-    .option("rampUpTime", "1s")
     .load()
     .withColumnRenamed("timestamp", "event_time")
     .withColumnRenamed("value", "event_id")
 )
 
-# Write to Delta (trigger once — process 10 seconds of data)
+# Write to Delta (availableNow — process all available data, then stop)
 query = (
     rate_stream.writeStream
     .format("delta")
     .option("checkpointLocation", "/Volumes/demo/streaming/_checkpoints/rate")
-    .trigger(processingTime="5 seconds")
+    .trigger(availableNow=True)
     .toTable("demo.streaming.rate_output")
 )
 
-# Let it run for 10 seconds, then stop
-import time
-time.sleep(10)
-query.stop()
+# Wait for the stream to process available data and terminate
+query.awaitTermination()
 
 print(f"✅ Rate stream produced: {spark.table('demo.streaming.rate_output').count()} rows")
 spark.table("demo.streaming.rate_output").display()
@@ -138,12 +140,11 @@ query2 = (
     .format("delta")
     .outputMode("append")  # append finalised windows only
     .option("checkpointLocation", "/Volumes/demo/streaming/_checkpoints/window")
-    .trigger(processingTime="5 seconds")
+    .trigger(availableNow=True)
     .toTable("demo.streaming.windowed_agg")
 )
 
-time.sleep(15)
-query2.stop()
+query2.awaitTermination()
 
 print(f"✅ Windowed aggregation: {spark.table('demo.streaming.windowed_agg').count()} windows")
 spark.table("demo.streaming.windowed_agg").orderBy("window_start").display()
@@ -181,13 +182,12 @@ dedup_stream = (
 query3 = (
     dedup_stream.writeStream
     .format("delta")
-    .option("checkpointLocation", "/Volumes/demo/streaming/_checkpoints/dedup")
-    .trigger(processingTime="5 seconds")
+ .option("checkpointLocation", "/Volumes/demo/streaming/_checkpoints/dedup")
+    .trigger(availableNow=True)
     .toTable("demo.streaming.dedup_output")
 )
 
-time.sleep(10)
-query3.stop()
+query3.awaitTermination()
 
 total = spark.table("demo.streaming.dedup_output").count()
 distinct = spark.table("demo.streaming.dedup_output").select("event_id").distinct().count()
@@ -246,12 +246,11 @@ query4 = (
     foreach_stream.writeStream
     .foreachBatch(upsert_batch)
     .option("checkpointLocation", "/Volumes/demo/streaming/_checkpoints/foreach")
-    .trigger(processingTime="5 seconds")
+    .trigger(availableNow=True)
     .start()
 )
 
-time.sleep(10)
-query4.stop()
+query4.awaitTermination()
 
 print(f"✅ foreachBatch + MERGE: {spark.table(target_table).count()} rows (deduplicated by event_id)")
 spark.table(target_table).orderBy("event_id").display()
@@ -300,12 +299,11 @@ query5 = (
     enriched.writeStream
     .format("delta")
     .option("checkpointLocation", "/Volumes/demo/streaming/_checkpoints/static_join")
-    .trigger(processingTime="5 seconds")
+    .trigger(availableNow=True)
     .toTable("demo.streaming.enriched_events")
 )
 
-time.sleep(10)
-query5.stop()
+query5.awaitTermination()
 
 print("✅ Stream-Static Join — enriched events:")
 spark.sql("""
@@ -326,7 +324,7 @@ spark.sql("""
 
 # COMMAND ----------
 
-from pyspark.sql.functions import col, expr, interval
+from pyspark.sql.functions import col, expr
 
 # Simulated impressions stream
 impressions = (
@@ -334,8 +332,9 @@ impressions = (
     .option("rowsPerSecond", 10)
     .load()
     .withColumnRenamed("timestamp", "impression_time")
-    .withColumn("ad_id", (col("value") % 5).cast("long"))
+    .withColumn("imp_ad_id", (col("value") % 5).cast("long"))
     .withColumn("impression_id", col("value"))
+    .drop("value")
 )
 
 # Simulated clicks stream (same ad_ids, delayed)
@@ -344,8 +343,9 @@ clicks = (
     .option("rowsPerSecond", 5)
     .load()
     .withColumnRenamed("timestamp", "click_time")
-    .withColumn("ad_id", (col("value") % 5).cast("long"))
+    .withColumn("click_ad_id", (col("value") % 5).cast("long"))
     .withColumn("click_id", col("value"))
+    .drop("value")
 )
 
 # Join: match clicks to impressions within 30 seconds
@@ -354,7 +354,7 @@ joined = (
     .join(
         clicks.withWatermark("click_time", "30 seconds"),
         expr("""
-            impressions.ad_id = clicks.ad_id AND
+            imp_ad_id = click_ad_id AND
             click_time >= impression_time AND
             click_time <= impression_time + interval 30 seconds
         """),
@@ -368,18 +368,17 @@ query6 = (
     joined.writeStream
     .format("delta")
     .option("checkpointLocation", "/Volumes/demo/streaming/_checkpoints/stream_join")
-    .trigger(processingTime="5 seconds")
+    .trigger(availableNow=True)
     .toTable("demo.streaming.impression_clicks")
 )
 
-time.sleep(15)
-query6.stop()
+query6.awaitTermination()
 
 joined_count = spark.table("demo.streaming.impression_clicks").count()
 print(f"✅ Stream-Stream Join: {joined_count} matched impression-click pairs")
 if joined_count > 0:
     spark.table("demo.streaming.impression_clicks").select(
-        "impression_time", "click_time", "ad_id", "impression_id", "click_id"
+        "impression_time", "click_time", "imp_ad_id", "impression_id", "click_id"
     ).display()
 else:
     print("   (No matches — timing dependent. Re-run to see matches.)")
