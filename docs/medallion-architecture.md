@@ -240,4 +240,4 @@ classDiagram
 - [Medallion Architecture — Databricks](https://www.databricks.com/glossary/medallion-architecture)
 - [Lakehouse Architecture](https://www.databricks.com/lakehouse)
 - [Delta Lake](https://docs.delta.io/)
-- [Spark Declarative Pipelines](https://docs.databricks.com/aws/en/pipelines/index/)
+- [Spark Declarative Pipelines](https://docs.databricks.com/aws/en/ldp/index/)

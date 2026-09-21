@@ -817,7 +817,7 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - [Delta Lake](https://docs.delta.io/)
 - [Unity Catalog](https://docs.databricks.com/aws/en/data-governance/unity-catalog/index/)
 - [Auto Loader](https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/index/)
-- [Spark Declarative Pipelines](https://docs.databricks.com/aws/en/pipelines/index/)
+- [Spark Declarative Pipelines](https://docs.databricks.com/aws/en/ldp/index/)
 - [MLflow](https://mlflow.org/docs/latest/index.html)
 - [Structured Streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html)
 - [Feature Store](https://docs.databricks.com/aws/en/machine-learning/feature-store/concepts/)
