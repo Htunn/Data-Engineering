@@ -126,6 +126,7 @@ query = (
     .format("delta")
     .option("checkpointLocation", checkpoint_path)
     .option("mergeSchema", True)
+    .trigger(once=True)  # process all available files, then stop
     .toTable(bronze_table)
 )
 
@@ -185,6 +186,7 @@ query2 = (
     .format("delta")
     .option("checkpointLocation", checkpoint_path)
     .option("mergeSchema", True)
+    .trigger(once=True)  # process all available files, then stop
     .toTable(bronze_table)
 )
 
