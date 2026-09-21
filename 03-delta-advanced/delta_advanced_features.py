@@ -249,7 +249,7 @@ for batch in range(20):
 
 # Check files before optimization
 print("📁 Before OPTIMIZE:")
-spark.sql("SELECT count(*) as file_count FROM (SELECT distinct input_file_name() FROM demo.delta.events_partitioned)").display()
+spark.sql("SELECT count(*) as file_count FROM (SELECT distinct _metadata.file_path FROM demo.delta.events_partitioned)").display()
 
 # OPTIMIZE with ZORDER on user_id (co-locates data by user_id for faster filtering)
 print("⏳ Running OPTIMIZE with ZORDER on user_id...")
@@ -257,7 +257,7 @@ spark.sql("OPTIMIZE demo.delta.events_partitioned ZORDER BY (user_id)")
 
 # Check files after optimization
 print("\n📁 After OPTIMIZE + ZORDER:")
-spark.sql("SELECT count(*) as file_count FROM (SELECT distinct input_file_name() FROM demo.delta.events_partitioned)").display()
+spark.sql("SELECT count(*) as file_count FROM (SELECT distinct _metadata.file_path FROM demo.delta.events_partitioned)").display()
 
 print("\n✅ Files compacted — queries filtering on user_id will benefit from data co-location")
 

@@ -451,7 +451,7 @@ print("""
 # MAGIC ## Best Practices
 # MAGIC 1. **Always set watermarks** for stateful operations (windows, joins, dedup)
 # MAGIC 2. **Use `append` mode** for Delta sinks — `complete` can cause performance issues
-# MAGIC 3. **Set `processingTime` trigger** to control micro-batch frequency and cost
+# MAGIC 3. **Use `availableNow` trigger** for serverless — `processingTime` is not supported on serverless compute
 # MAGIC 4. **Monitor input vs processing rate** — backlog indicates scaling needed
 # MAGIC 5. **Use `foreachBatch`** for complex sinks that don't support streaming writes
 

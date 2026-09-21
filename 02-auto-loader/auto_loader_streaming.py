@@ -378,7 +378,7 @@ spark.sql(f"DESCRIBE HISTORY {bronze_table} LIMIT 5").display()
 # MAGIC |---------|------------|
 # MAGIC | **`trigger(once=True)`** | One-time backfill or ad-hoc ingestion |
 # MAGIC | **`trigger(availableNow=True)`** | Scheduled jobs — process pending files, then stop (cost-efficient) |
-# MAGIC | **`trigger(processingTime='30s')`** | Continuous near-real-time streaming |
+# MAGIC | **`trigger(processingTime='30s')`** | Continuous near-real-time streaming (not supported on serverless — use `availableNow` instead) |
 # MAGIC | **Schema inference** | Unknown/expanding source schemas |
 # MAGIC | **`addNewColumns`** | Source schema evolves over time (new columns added) |
 # MAGIC | **`foreachBatch` + MERGE** | Idempotent upserts into silver/gold tables |
