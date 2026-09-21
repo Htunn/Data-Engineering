@@ -38,7 +38,10 @@ for t in ["rate_output", "windowed_agg", "dedup_output", "joined_output"]:
 
 # Clean checkpoints
 for p in ["rate", "window", "dedup", "join"]:
-    dbutils.fs.rm(f"/Volumes/demo/streaming/_checkpoints/{p}", True)
+    try:
+        dbutils.fs.rm(f"/Volumes/demo/streaming/_checkpoints/{p}", True)
+    except Exception:
+        pass  # path doesn't exist on first run
 
 print("✅ Catalog, schema, and checkpoint locations ready")
 
@@ -205,7 +208,10 @@ spark.table("demo.streaming.dedup_output").orderBy("event_id").display()
 from pyspark.sql.functions import col
 
 spark.sql("DROP TABLE IF EXISTS demo.streaming.foreach_output")
-dbutils.fs.rm("/Volumes/demo/streaming/_checkpoints/foreach", True)
+try:
+    dbutils.fs.rm("/Volumes/demo/streaming/_checkpoints/foreach", True)
+except Exception:
+    pass  # path doesn't exist on first run
 
 target_table = "demo.streaming.foreach_output"
 

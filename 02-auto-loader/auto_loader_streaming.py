@@ -105,8 +105,11 @@ schema_location = "/Volumes/demo/bronze/landing_zone/_schemas/bronze_raw"
 
 # Clean up for re-run
 spark.sql(f"DROP TABLE IF EXISTS {bronze_table}")
-dbutils.fs.rm(checkpoint_path, True)
-dbutils.fs.rm(schema_location, True)
+try:
+    dbutils.fs.rm(checkpoint_path, True)
+    dbutils.fs.rm(schema_location, True)
+except Exception:
+    pass  # paths don't exist on first run
 
 # Auto Loader with schema inference
 raw_stream = (
@@ -212,7 +215,10 @@ silver_table = "demo.silver.transactions_cleaned"
 checkpoint_silver = "/Volumes/demo/bronze/landing_zone/_checkpoints/silver"
 
 spark.sql(f"DROP TABLE IF EXISTS {silver_table}")
-dbutils.fs.rm(checkpoint_silver, True)
+try:
+    dbutils.fs.rm(checkpoint_silver, True)
+except Exception:
+    pass  # path doesn't exist on first run
 
 # Read bronze as a stream (process new inserts incrementally)
 bronze_stream = (

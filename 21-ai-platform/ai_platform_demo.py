@@ -279,8 +279,7 @@ print("   📝 Unstructured: tickets, knowledge base (text)")
 
 # COMMAND ----------
 
-from pyspark.sql.functions import col, trim, lower, when, regexp_replace, length, to_date, row_number
-from pyspark.sql.window import Window
+from pyspark.sql.functions import col, trim, lower, when, regexp_replace, length, to_date
 
 # --- 3a: Silver transactions — clean and standardize ---
 spark.sql("DROP TABLE IF EXISTS demo.ai_platform.silver_transactions")
@@ -682,7 +681,7 @@ chunks = spark.table("demo.ai_platform.gold_doc_chunks").collect()
 # Generate deterministic dummy embeddings (384-dim like GTE-small)
 embedding_data = []
 for row in chunks:
-    random.seed(hash(row.chunk_id) % (2**32))
+    random.seed(row.doc_id * 1000 + row.chunk_index)  # deterministic across runs
     emb = [random.gauss(0, 1) for _ in range(384)]
     embedding_data.append((row.chunk_id, row.doc_id, row.title, row.category,
                           row.chunk_index, row.chunk_text, emb))
