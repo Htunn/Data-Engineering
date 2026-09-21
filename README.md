@@ -839,7 +839,7 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - [Lakeflow Connect](https://docs.databricks.com/aws/en/ingestion/overview/)
 - [Lakebase](https://docs.databricks.com/aws/en/oltp/projects/index/)
 - [AI Gateway](https://docs.databricks.com/aws/en/ai-gateway/index/)
-- [AI Platform](https://www.databricks.com/product/ai-platform)
+- [Databricks AI Capabilities](https://docs.databricks.com/aws/en/agents/gen-ai-capabilities/)
 - [Databricks OAuth M2M](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m/)
 - [Databricks SDK for Python](https://docs.databricks.com/aws/en/dev-tools/sdk-python/)
 - [CI/CD on Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd/index/)
