@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# K8s ConfigMap — Pipeline configuration (non-sensitive)
+# ---------------------------------------------------------------------------
+# These values configure the trigger script behavior.
+# Separated from the Secret so they can be updated without re-rotating
+# credentials.
+# ---------------------------------------------------------------------------
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: databricks-config
+  namespace: databricks-pipeline
+  labels:
+    app.kubernetes.io/name: ai-platform-trigger
+    app.kubernetes.io/component: config
+data:
+  # Name of the Lakeflow Job to trigger on Databricks
+  # Must match the job name in your DAB bundle (databricks.yml)
+  DATABRICKS_JOB_NAME: "ai-platform-pipeline"
+
+  # How often to poll Databricks for job status (seconds)
+  POLL_INTERVAL_SECONDS: "30"
+
+  # Max wait time before timing out and cancelling the run (seconds)
+  # Default: 3600 (1 hour) — increase for long-running pipelines
+  MAX_WAIT_SECONDS: "3600"

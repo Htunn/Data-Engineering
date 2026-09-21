@@ -1,0 +1,86 @@
+# ---------------------------------------------------------------------------
+# K8s CronJob — Triggers the Databricks AI Platform pipeline daily
+# ---------------------------------------------------------------------------
+# This CronJob runs trigger_pipeline.py in a pod. The pod:
+#   1. Authenticates to Databricks via OAuth M2M (from databricks-auth Secret)
+#   2. Reads pipeline config (job name, poll interval) from databricks-config ConfigMap
+#   3. Triggers the Lakeflow Job on Databricks serverless compute
+#   4. Polls job status until completion or timeout
+#   5. Exits with code 0 (success) or 1 (failure)
+#
+# All Spark/ML/RAG execution runs on Databricks — the K8s pod is just a trigger.
+# ---------------------------------------------------------------------------
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databricks-pipeline
+  labels:
+    app.kubernetes.io/name: ai-platform-trigger
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ai-platform-pipeline-trigger
+  namespace: databricks-pipeline
+  labels:
+    app.kubernetes.io/name: ai-platform-trigger
+    app.kubernetes.io/component: orchestrator
+spec:
+  # Run daily at 08:00 UTC — adjust to your schedule
+  schedule: "0 8 * * *"
+  # Prevent overlapping runs (Databricks job also has concurrent run policy)
+  concurrencyPolicy: Forbid
+  # Keep last 3 successful runs for audit
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      # Retry on failure (K8s level — Databricks job has its own retries)
+      backoffLimit: 2
+      activeDeadlineSeconds: 3900  # 65 min — slightly longer than MAX_WAIT_SECONDS
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ai-platform-trigger
+            app.kubernetes.io/component: orchestrator
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: pipeline-trigger
+            # Use your container registry — build from k8s/Dockerfile
+            image: your-registry/ai-platform-trigger:latest
+            imagePullPolicy: Always
+            # Env vars from Secret (credentials) + ConfigMap (pipeline config)
+            envFrom:
+            - secretRef:
+                name: databricks-auth
+            - configMapRef:
+                name: databricks-config
+            resources:
+              # Minimal resources — this pod just makes API calls
+              # No Spark, no ML — all compute is on Databricks
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+              limits:
+                cpu: "500m"
+                memory: "256Mi"
+            # Security hardening
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              readOnlyRootFilesystem: true
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+            # Temporary volume for writable /tmp (readOnlyRootFilesystem)
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: tmp
+            emptyDir: {}
+          # Optional: image pull secret for private registry
+          # imagePullSecrets:
+          # - name: registry-credentials

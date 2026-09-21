@@ -43,6 +43,7 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | [Data Engineering Concepts](docs/data-engineering-concepts.md) | ETL/ELT, idempotency, data quality, lineage, incremental processing, streaming patterns, orchestration |
 | [Databricks Platform Overview](docs/databricks-platform-overview.md) | Compute, storage, governance, AI/ML components, UML class diagram, learning path flowchart |
 | [Module Domain Guide](docs/module-domain-guide.md) | What each module teaches: domain concepts, why it matters, key terms, vendor-agnostic equivalents |
+| [K8s + Databricks Integration](docs/k8s-databricks-integration.md) | Run pipelines from Kubernetes: 3 patterns (orchestrator, Connect, GitOps), prerequisites, security, troubleshooting |
 
 ## Coverage Matrix
 
@@ -392,11 +393,13 @@ flowchart TD
     ROOT --> M19[19-lakeflow-connect/]
     ROOT --> M20[20-lakebase/]
     ROOT --> M21[21-ai-platform/]
+    ROOT --> K8S[k8s/]
 
     DOCS --> D1[medallion-architecture.md]
     DOCS --> D2[data-engineering-concepts.md]
     DOCS --> D3[databricks-platform-overview.md]
     DOCS --> D4[module-domain-guide.md]
+    DOCS --> D5[k8s-databricks-integration.md]
 ```
 
 ```
@@ -409,7 +412,15 @@ dataengineering/
 │   ├── medallion-architecture.md                # Medallion Architecture guide
 │   ├── data-engineering-concepts.md             # Core data engineering principles
 │   ├── databricks-platform-overview.md           # Platform components overview
-│   └── module-domain-guide.md                    # What each module domain teaches
+│   ├── module-domain-guide.md                    # What each module domain teaches
+│   └── k8s-databricks-integration.md            # K8s + Databricks integration guide
+├── k8s/                                          # K8s deployment (Pattern 1)
+│   ├── trigger_pipeline.py                     # Python trigger script (SDK + OAuth M2M)
+│   ├── Dockerfile                              # Lightweight trigger image
+│   ├── k8s-secret.yaml                         # K8s Secret for OAuth credentials
+│   ├── k8s-configmap.yaml                      # K8s ConfigMap for pipeline config
+│   ├── k8s-cronjob.yaml                        # K8s CronJob manifest
+│   └── README.md                               # K8s setup guide + troubleshooting
 ├── 01-medallion-fundamentals/
 │   └── simple_medallion_architecture.ipynb       # 01 — Bronze/Silver/Gold basics
 ├── 02-auto-loader/
@@ -452,6 +463,13 @@ dataengineering/
     └── lakebase_demo.ipynb                  # 20 — Lakebase Postgres
 ├── 21-ai-platform/
     └── ai_platform_demo.ipynb              # 21 — AI Platform: raw data → LLM inference
+└── k8s/                                      # K8s + Databricks integration (Pattern 1)
+    ├── trigger_pipeline.py                  # SDK trigger script
+    ├── Dockerfile                           # Trigger pod image
+    ├── k8s-secret.yaml                      # OAuth credentials
+    ├── k8s-configmap.yaml                   # Pipeline config
+    ├── k8s-cronjob.yaml                     # CronJob manifest
+    └── README.md                            # Setup guide
 ```
 
 ## Unity Catalog Structure
@@ -482,7 +500,30 @@ demo (catalog)
 - **Serverless compute** (auto-selected) or a Databricks cluster
 - For **04 — SDP**: Spark Declarative Pipelines enabled in the workspace
 - For **11 — Local dev on Mac M3 Pro**: Python 3.12+, `pip install databricks-connect databricks-sdk mlflow scikit-learn torch`
+- For **K8s integration**: K8s cluster, `kubectl`, container registry, Databricks service principal (OAuth M2M). See [k8s/README.md](k8s/README.md) for setup
 - **No paid workspace?** Use [Databricks Free Edition](https://www.databricks.com/learn/free-edition) — free, no credit card required
+
+## Kubernetes Integration
+
+Run the AI Platform pipeline (module 21) from Kubernetes. K8s triggers and monitors the pipeline; all Spark/ML/RAG compute runs on Databricks serverless.
+
+| Pattern | Description | K8s Role | Implemented |
+|---------|-------------|---------|:-----------:|
+| **1. K8s Orchestrator** | K8s CronJob triggers Lakeflow Job via SDK | Trigger + monitor | ✅ `k8s/` |
+| **2. Databricks Connect** | K8s pod runs PySpark on Databricks serverless | Execute Spark code | Reference |
+| **3. DAB + GitOps** | ArgoCD/Flux deploys DAB bundles to Databricks | CI/CD deployment | Reference |
+
+See [docs/k8s-databricks-integration.md](docs/k8s-databricks-integration.md) for all 3 patterns, prerequisites, and security checklist.
+
+```bash
+# Quick start — Pattern 1 (K8s orchestrator)
+cd k8s && docker build -t your-registry/ai-platform-trigger:latest .
+kubectl create secret generic databricks-auth \
+  --from-literal=DATABRICKS_HOST='https://<workspace>.cloud.databricks.com' \
+  --from-literal=DATABRICKS_CLIENT_ID='<sp-uuid>' \
+  --from-literal=DATABRICKS_CLIENT_SECRET='<oauth-secret>' -n databricks-pipeline
+kubectl apply -f k8s-configmap.yaml && kubectl apply -f k8s-cronjob.yaml
+```
 
 ## Running the Notebooks
 
@@ -745,6 +786,7 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - **Lakeflow Connect**: Managed ingestion from external sources (Salesforce, MySQL, Google Ads, etc.)
 - **Lakebase**: Managed PostgreSQL with autoscaling, branching, and reverse ETL
 - **AI Platform**: Raw data to LLM inference — medallion processing, ML training, embeddings, Vector Search, RAG, LLM serving, AI Gateway, orchestration
+- **K8s Integration**: Run pipelines from Kubernetes (CronJob + SDK trigger, Databricks Connect, GitOps with DAB). OAuth M2M auth, security hardening
 - **Local Development**: Databricks Connect on Mac M3 Pro with Apple Silicon GPU acceleration, Makefile for automated setup, and test script for full pipeline verification
 
 ## References
@@ -777,6 +819,9 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - [Lakebase](https://docs.databricks.com/lakebase/index.html)
 - [AI Gateway](https://docs.databricks.com/en/generative-ai/ai-gateway/index.html)
 - [AI Platform](https://www.databricks.com/product/ai-platform)
+- [Databricks OAuth M2M](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m/)
+- [Databricks SDK for Python](https://docs.databricks.com/aws/en/dev-tools/sdk-python/)
+- [CI/CD on Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd/index/)
 
 ## License
 
