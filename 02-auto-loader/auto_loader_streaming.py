@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # DBTITLE 1,Auto Loader — Overview
 # MAGIC %md
 # MAGIC # Auto Loader: Incremental Data Ingestion
@@ -97,7 +101,7 @@ print(f"   Landing zone: {landing_path}")
 
 # COMMAND ----------
 
-from pyspark.sql.functions import col, input_file_name, current_timestamp
+from pyspark.sql.functions import col, current_timestamp
 
 bronze_table = "demo.bronze.transactions_raw"
 checkpoint_path = "/Volumes/demo/bronze/landing_zone/_checkpoints/bronze_raw"
@@ -117,9 +121,8 @@ raw_stream = (
     .option("cloudFiles.format", "csv")
     .option("cloudFiles.schemaLocation", schema_location)
     .option("header", True)
-    .option("cloudFiles.useStrictGlobbing", True)
     .load(landing_path + "/batch_1/*")
-    .withColumn("source_file", input_file_name())
+    .withColumn("source_file", col("_metadata.file_path"))
     .withColumn("ingest_timestamp", current_timestamp())
 )
 
@@ -172,6 +175,13 @@ for i in range(3):
 
 print("✅ Batch 2 written: 3 CSV files with new 'region' column")
 
+# Use a separate checkpoint for batch_2 (schema location is shared for evolution)
+checkpoint_path_evolved = "/Volumes/demo/bronze/landing_zone/_checkpoints/bronze_raw_evolved"
+try:
+    dbutils.fs.rm(checkpoint_path_evolved, True)
+except Exception:
+    pass  # path doesn't exist on first run
+
 # Re-run Auto Loader with schema evolution — now scanning batch_2
 raw_stream_evolved = (
     spark.readStream.format("cloudFiles")
@@ -180,14 +190,14 @@ raw_stream_evolved = (
     .option("cloudFiles.schemaEvolutionMode", "addNewColumns")  # auto-evolve schema
     .option("header", True)
     .load(landing_path + "/batch_2/*")
-    .withColumn("source_file", input_file_name())
+    .withColumn("source_file", col("_metadata.file_path"))
     .withColumn("ingest_timestamp", current_timestamp())
 )
 
 query2 = (
     raw_stream_evolved.writeStream
     .format("delta")
-    .option("checkpointLocation", checkpoint_path)
+    .option("checkpointLocation", checkpoint_path_evolved)
     .option("mergeSchema", True)
     .trigger(once=True)  # process all available files, then stop
     .toTable(bronze_table)
@@ -223,8 +233,7 @@ except Exception:
 # Read bronze as a stream (process new inserts incrementally)
 bronze_stream = (
     spark.readStream
-    .format("delta")
-    .load(f"{bronze_table}")
+    .table(bronze_table)
     .filter(col("amount").isNotNull() & col("customer").isNotNull())
 )
 
@@ -293,6 +302,13 @@ for i in range(2):
 
 print("✅ Batch 3 written: 2 new CSV files")
 
+# Use a separate checkpoint for batch_3 (schema location is shared for evolution)
+checkpoint_path_an = "/Volumes/demo/bronze/landing_zone/_checkpoints/bronze_raw_an"
+try:
+    dbutils.fs.rm(checkpoint_path_an, True)
+except Exception:
+    pass  # path doesn't exist on first run
+
 # AvailableNow trigger — process all pending files in finite batches, then stop
 raw_stream_an = (
     spark.readStream.format("cloudFiles")
@@ -301,14 +317,14 @@ raw_stream_an = (
     .option("cloudFiles.schemaEvolutionMode", "addNewColumns")
     .option("header", True)
     .load(landing_path + "/batch_3/*")
-    .withColumn("source_file", input_file_name())
+    .withColumn("source_file", col("_metadata.file_path"))
     .withColumn("ingest_timestamp", current_timestamp())
 )
 
 query4 = (
     raw_stream_an.writeStream
     .format("delta")
-    .option("checkpointLocation", checkpoint_path)
+    .option("checkpointLocation", checkpoint_path_an)
     .option("mergeSchema", True)
     .trigger(availableNow=True)  # finite micro-batches
     .toTable(bronze_table)
