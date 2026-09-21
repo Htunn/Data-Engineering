@@ -115,6 +115,189 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | AI Platform integration (data → ML → GenAI) | 21 | ✅ Covered |
 | SLM / LLM fine-tuning (LoRA, PEFT, HuggingFace) | 22 | ✅ Covered |
 
+## Databricks Platform Domains
+
+The Databricks Data + AI Platform is organised into 12 domains. Each domain solves a specific problem in the data and AI lifecycle. Every module in this repo maps to one or more domains.
+
+### 1. Compute — The Execution Engine
+
+**What it is**: The compute layer runs your code — Spark jobs, SQL queries, ML training, model serving, and notebooks. Databricks abstracts away infrastructure management so you focus on code, not servers.
+
+| Compute Type | Description | Best For |
+|-------------|-------------|----------|
+| **Serverless** | Auto-provisioned, auto-scaled, pay-per-use. No cluster to manage | Notebooks, jobs, pipelines, streaming |
+| **Serverless GPU** | GPU-accelerated serverless with AI base environment (torch, transformers pre-installed) | SLM/LLM training, GPU inference |
+| **Classic Clusters** | User-managed Spark clusters with custom configs | Legacy workloads, custom JARs, init scripts |
+| **SQL Warehouses** | Optimised for SQL queries, auto-start/stop | BI tools, dashboards, ad-hoc SQL |
+
+**Modules**: All (compute is foundational)
+
+### 2. Data Ingestion — Getting Data Into the Platform
+
+**What it is**: Ingestion moves data from external sources (cloud storage, databases, SaaS apps, message buses) into Delta tables on Databricks. The platform offers both batch and streaming ingestion.
+
+| Tool | Description | When to Use |
+|------|-------------|-------------|
+| **Auto Loader** | Incremental file ingestion from cloud storage with schema inference and evolution | Files landing in S3/ADLS/GCS — most common |
+| **Lakeflow Connect** | Fully-managed connectors for Salesforce, MySQL, PostgreSQL, Google Ads, etc. | Enterprise apps and databases — no code needed |
+| **COPY INTO** | Idempotent batch loads from cloud storage | One-time loads or simple batch |
+| **Structured Streaming** | Real-time stream processing from Kafka, Kinesis, Event Hubs | Low-latency, continuous ingestion |
+
+**Modules**: 02 (Auto Loader), 06 (Streaming), 19 (Lakeflow Connect)
+
+### 3. Data Storage — Delta Lake
+
+**What it is**: Delta Lake is the storage layer that brings ACID transactions, schema enforcement, and time travel to your data lake. All tables in Databricks are Delta tables by default.
+
+| Feature | Description |
+|---------|-------------|
+| **ACID transactions** | Serializable isolation — safe concurrent reads and writes |
+| **Time Travel** | Query data at any historical version or timestamp — rollback, audit |
+| **Change Data Feed (CDF)** | Row-level change tracking (inserts, updates, deletes) for CDC pipelines |
+| **Schema evolution** | Add columns automatically with `MERGE_SCHEMA` or `addNewColumns` |
+| **Deletion Vectors** | Lazy deletion — faster UPDATE/DELETE without full file rewrites |
+| **Liquid Clustering** | Self-optimising data layout — replaces partitioning + ZORDER |
+| **OPTIMIZE / ZORDER** | File compaction and data co-location by key |
+| **VACUUM** | Remove orphaned files past retention threshold |
+
+**Modules**: 01 (Medallion), 03 (Delta Advanced)
+
+### 4. Data Governance — Unity Catalog
+
+**What it is**: Unity Catalog is the central governance layer — it manages who can access what data, tracks lineage, classifies data with tags, and audits all access. It uses a three-level namespace: `catalog.schema.table`.
+
+| Feature | Description |
+|---------|-------------|
+| **Three-level namespace** | `catalog.schema.table` — organises data like a file system |
+| **GRANT / REVOKE** | Fine-grained privileges (SELECT, MODIFY, CREATE, etc.) |
+| **Row-Level Security (RLS)** | Filter rows per user/group — e.g., only see your region's data |
+| **Column Masking** | Mask sensitive columns (PII, financial) per user role |
+| **Tags** | Classify data (PII, sensitive, public) for governance policies |
+| **Lineage** | Visual graph of data flow from source to dashboard |
+| **Audit Logs** | Every access logged — who accessed what, when, how |
+
+**Modules**: 05 (UC Governance)
+
+### 5. Data Engineering — Transforming and Processing Data
+
+**What it is**: The data engineering domain transforms raw data into analytics-ready tables using batch processing, streaming, and declarative pipelines. This is the core of the medallion architecture (Bronze → Silver → Gold).
+
+| Tool | Description |
+|------|-------------|
+| **Apache Spark** | Distributed compute engine — batch and streaming DataFrames |
+| **Spark Declarative Pipelines (SDP)** | Declarative pipelines in SQL/Python with data quality expectations, streaming tables, and materialised views |
+| **Structured Streaming** | Real-time stream processing with watermarks, windowed aggregations, stream-stream joins |
+| **Delta Lake operations** | MERGE (upsert), CDF, Time Travel, OPTIMIZE, VACUUM |
+
+**Modules**: 01 (Medallion), 02 (Auto Loader), 03 (Delta Advanced), 04 (SDP), 06 (Streaming)
+
+### 6. SQL Analytics — Querying and Visualising Data
+
+**What it is**: The SQL analytics domain lets analysts and business users query data with SQL, build dashboards, set up alerts, and ask natural-language questions — all without writing code.
+
+| Tool | Description |
+|------|-------------|
+| **Databricks SQL** | SQL editor with views, materialised views, window functions, CTEs, PIVOT, AI functions |
+| **Lakeview Dashboards** | Interactive BI dashboards with filters, cross-filtering, drill-down |
+| **SQL Alerts** | Monitor query results and get notified when conditions are met |
+| **Genie Agents** | Natural-language Q&A over your data — no SQL needed |
+
+**Modules**: 08 (Databricks SQL), 16 (Dashboards, Alerts, Genie)
+
+### 7. AI / ML — Machine Learning Lifecycle
+
+**What it is**: The AI/ML domain covers the full machine learning lifecycle — from feature engineering to model training, tracking, evaluation, registry, and serving.
+
+| Service | Description |
+|---------|-------------|
+| **MLflow** | Experiment tracking, model registry, model serving — open source |
+| **Feature Store** | Centralised feature management with point-in-time correctness |
+| **Model Training** | Distributed training on CPU or GPU compute (PyTorch, scikit-learn, XGBoost) |
+| **SLM Fine-Tuning** | Domain-specific small language model training with LoRA/PEFT on GPU serverless |
+| **Model Serving** | Real-time inference via REST API endpoints with autoscaling |
+
+**Modules**: 07 (MLflow), 09 (Feature Store), 11 (End-to-End ML), 22 (SLM Training)
+
+### 8. GenAI — Generative AI Applications
+
+**What it is**: The GenAI domain builds AI applications on top of large language models — RAG pipelines, vector search, LLM serving, and agent development with governance.
+
+| Service | Description |
+|---------|-------------|
+| **AI Search (Vector Search)** | Index embeddings for semantic similarity search — powers RAG |
+| **RAG Pipelines** | Retrieval-augmented generation — ground LLM responses in your data |
+| **LLM Serving** | Serve foundation models (Llama, Mixtral, GPT) via REST API |
+| **AI Gateway** | Rate limiting, fallback, token logging, guardrails for LLM endpoints |
+| **Agent Development** | Build custom agents with tools, MCP servers, and Genie Agents |
+| **AI Functions (SQL)** | `ai_query`, `ai_forecast`, `ai_analyze_sentiment` — call LLMs from SQL |
+
+**Modules**: 10 (GenAI RAG), 21 (AI Platform)
+
+### 9. Orchestration — Scheduling and Automating Workflows
+
+**What it is**: The orchestration domain schedules and automates multi-step workflows — ETL pipelines, ML training jobs, data refresh, and CI/CD pipelines.
+
+| Tool | Description |
+|------|-------------|
+| **Lakeflow Jobs** | Multi-task workflows with scheduling, triggers (file arrival, table update), and dependencies |
+| **Declarative Automation Bundles (DAB)** | Infrastructure-as-code for CI/CD — define jobs, pipelines, and resources in YAML |
+
+**Modules**: 12 (Jobs & DAB), 18 (Git Integration)
+
+### 10. Data Sharing — Cross-Organisation Collaboration
+
+**What it is**: The data sharing domain lets you securely share data with external organisations without copying or moving data — using the open Delta Sharing protocol.
+
+| Feature | Description |
+|---------|-------------|
+| **Shares** | A collection of tables, notebooks, or files you share with recipients |
+| **Recipients** | Open (token-based) or Databricks-to-Databricks authentication |
+| **Providers** | Consume data shared by other organisations as a Unity Catalog catalog |
+
+**Modules**: 15 (Delta Sharing)
+
+### 11. App Development — Building Data Applications
+
+**What it is**: The app development domain lets you build and deploy data and AI applications (Streamlit, Flask, Gradio, Dash) directly on the Databricks platform — no separate infrastructure needed.
+
+| Feature | Description |
+|---------|-------------|
+| **Databricks Apps** | Serverless app hosting with OAuth authentication, UC integration |
+| **Supported frameworks** | Streamlit, Flask, Gradio, Dash, React, Express |
+
+**Modules**: 17 (Databricks Apps)
+
+### 12. Monitoring & Observability — Platform Health
+
+**What it is**: The monitoring domain tracks platform health, costs, query performance, audit trails, and data quality through system tables and dashboards.
+
+| System Table | Description |
+|--------------|-------------|
+| **system.billing** | DBU consumption, costs by workspace, compute type, job |
+| **system.compute** | Cluster/warehouse events, runtime, auto-termination |
+| **system.access** | Audit log — who accessed what, when, from where |
+| **system.query** | Query history, duration, rows, errors |
+| **system.lakeflow** | Job and pipeline runs, status, duration |
+
+**Modules**: 13 (System Tables & Monitoring)
+
+### Domain-to-Module Matrix
+
+| Domain | Modules |
+|--------|---------|
+| Compute | All (foundational) |
+| Data Ingestion | 02, 06, 19 |
+| Data Storage (Delta Lake) | 01, 03 |
+| Data Governance (UC) | 05 |
+| Data Engineering | 01, 02, 03, 04, 06 |
+| SQL Analytics | 08, 16 |
+| AI / ML | 07, 09, 11, 22 |
+| GenAI | 10, 21 |
+| Orchestration | 12, 18 |
+| Data Sharing | 15 |
+| App Development | 17 |
+| Monitoring & Observability | 13 |
+
 ## Architecture — Component Diagram
 
 ```mermaid
