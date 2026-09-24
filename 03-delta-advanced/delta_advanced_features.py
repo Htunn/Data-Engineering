@@ -16,6 +16,8 @@
 # MAGIC | **VACUUM** | Remove orphaned files past retention threshold |
 # MAGIC | **Table Properties** | Tune Delta behaviour (CDF, log retention, deletion vectors) |
 # MAGIC | **DESCRIBE HISTORY** | Audit trail of all table operations |
+# MAGIC | **Apache Parquet** | Columnar file format — compression, predicate pushdown, column pruning |
+# MAGIC | **Apache Iceberg** | Open table format — snapshots, schema evolution, time travel (Delta alternative) |
 # MAGIC
 # MAGIC ---
 
@@ -330,6 +332,187 @@ spark.sql("SHOW TBLPROPERTIES demo.delta.customers").display()
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 9: Apache Parquet
+# Databricks notebook source
+# MAGIC %md
+# MAGIC ## Cell 9: Apache Parquet — The Columnar File Format
+# MAGIC
+# MAGIC Parquet is the underlying file format for Delta Lake. Understanding Parquet helps you understand how Delta works — Delta = Parquet + transaction log.
+# MAGIC
+# MAGIC **Key Parquet concepts**:
+# MAGIC - **Columnar storage**: Data stored column-by-column (not row-by-row) — enables column pruning and vectorised reads
+# MAGIC - **Predicate pushdown**: Filters applied at the file level before reading data into memory
+# MAGIC - **Compression**: Built-in compression per column (snappy, gzip, zstd) — better ratios than row formats
+# MAGIC - **Schema embedded**: Each file contains its own schema — self-describing
+# MAGIC - **No ACID**: Parquet files are immutable — no transactions, no concurrency control
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col, lit, rand, expr
+import os
+
+# Create a volume for file-format demos
+spark.sql("CREATE VOLUME IF NOT EXISTS demo.delta.file_formats")
+
+VOLUME_PATH = "/Volumes/demo/delta/file_formats"
+
+# --- 1. Write Parquet with different compression codecs ---
+sample_df = spark.range(10000).select(
+    col("id").alias("event_id"),
+    (col("id") % 100).alias("user_id"),
+    expr("CASE WHEN id % 3 = 0 THEN 'click' WHEN id % 3 = 1 THEN 'view' ELSE 'purchase' END").alias("event_type"),
+    (rand() * 1000).alias("value"),
+    expr("date_add(date('2025-01-01'), cast(id % 365 as int))").alias("event_date"),
+)
+
+# Write with snappy (default, fast decompression)
+sample_df.write.mode("overwrite").option("compression", "snappy").parquet(f"{VOLUME_PATH}/parquet_snappy")
+
+# Write with gzip (better compression, slower)
+sample_df.write.mode("overwrite").option("compression", "gzip").parquet(f"{VOLUME_PATH}/parquet_gzip")
+
+# Write with zstd (best balance)
+sample_df.write.mode("overwrite").option("compression", "zstd").parquet(f"{VOLUME_PATH}/parquet_zstd")
+
+print("✅ Wrote Parquet files with 3 compression codecs: snappy, gzip, zstd")
+
+# --- 2. Compare file sizes ---
+for codec in ["snappy", "gzip", "zstd"]:
+    files = dbutils.fs.ls(f"{VOLUME_PATH}/parquet_{codec}")
+    total_size = sum(f.size for f in files if f.name.endswith(".parquet"))
+    print(f"  {codec:8s}: {total_size / 1024:.1f} KB ({len([f for f in files if f.name.endswith('.parquet')])} files)")
+
+# --- 3. Read Parquet and verify schema ---
+print("\n📋 Parquet schema (self-describing):")
+parquet_df = spark.read.parquet(f"{VOLUME_PATH}/parquet_snappy")
+parquet_df.printSchema()
+
+# --- 4. Predicate pushdown demo ---
+print("\n🔍 Predicate pushdown — filter at file level (see Spark UI for scan stats):")
+filtered = spark.read.parquet(f"{VOLUME_PATH}/parquet_snappy").filter(col("event_type") == "click").filter(col("user_id") < 10)
+print(f"   Filtered rows: {filtered.count()}")
+
+# --- 5. Column pruning — only read needed columns ---
+print("\n✂️ Column pruning — only read 2 of 5 columns:")
+pruned = spark.read.parquet(f"{VOLUME_PATH}/parquet_snappy").select("event_id", "event_type")
+print(f"   Rows: {pruned.count()}, Columns read: {len(pruned.columns)}")
+
+# --- 6. Parquet vs Delta comparison ---
+print("\n📊 Parquet vs Delta Lake:")
+print("   Parquet: Columnar file format — fast reads, compression, no ACID")
+print("   Delta:   Parquet + transaction log — ACID, time travel, schema enforcement, CDF")
+print("   Rule:    Use Parquet for one-time exports; use Delta for everything on Databricks")
+
+# Write same data as Delta for comparison
+sample_df.write.mode("overwrite").format("delta").saveAsTable("demo.delta.events_parquet_vs_delta")
+delta_count = spark.table("demo.delta.events_parquet_vs_delta").count()
+parquet_count = parquet_df.count()
+print(f"\n   Parquet rows: {parquet_count} | Delta rows: {delta_count} — same data, different format")
+
+# COMMAND ----------
+
+# DBTITLE 1,Cell 10: Apache Iceberg (Delta UniForm)
+# Databricks notebook source
+# MAGIC %md
+# MAGIC ## Cell 10: Apache Iceberg — The Open Table Format (Delta UniForm)
+# MAGIC
+# MAGIC Apache Iceberg is an open table format that brings ACID transactions, schema evolution, and time travel to Parquet files — like Delta, but from the open-source community.
+# MAGIC
+# MAGIC **Key Iceberg concepts**:
+# MAGIC - **Snapshot-based**: Each write creates a snapshot (like Delta versions) — enables time travel
+# MAGIC - **Schema evolution**: Add/rename/drop columns without rewriting data files
+# MAGIC - **Hidden partitioning**: Partitioning declared in table metadata, not in data — no need for partition columns in queries
+# MAGIC - **Open format**: Works with Spark, Flink, Trino, Presto, Athena — vendor-neutral
+# MAGIC - **On Databricks**: Use **Delta UniForm** — Delta tables with Iceberg metadata. Best of both worlds: Delta performance + Iceberg interoperability.
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col, lit, expr
+
+# --- 1. Create a Delta UniForm table (Delta + Iceberg metadata) ---
+print("🧊 Creating Delta UniForm table (Delta + Iceberg compatibility)...")
+
+spark.sql("DROP TABLE IF EXISTS demo.delta.iceberg_uniform_events")
+spark.sql("""
+    CREATE TABLE demo.delta.iceberg_uniform_events (
+        event_id LONG,
+        user_id LONG,
+        action STRING,
+        amount DOUBLE,
+        event_date DATE
+    ) USING DELTA
+    TBLPROPERTIES (
+        'delta.enableIcebergCompatV2' = 'true',
+        'delta.universalFormat.enabledFormats' = 'iceberg',
+        'delta.enableDeletionVectors' = 'false'
+    )
+""")
+print("✅ Delta UniForm table created — Delta table with Iceberg metadata")
+
+# --- 2. Insert data ---
+iceberg_df = spark.range(5000).select(
+    col("id").alias("event_id"),
+    (col("id") % 200).alias("user_id"),
+    expr("CASE WHEN id % 4 = 0 THEN 'login' WHEN id % 4 = 1 THEN 'logout' WHEN id % 4 = 2 THEN 'purchase' ELSE 'signup' END").alias("action"),
+    (col("id") * 1.5).alias("amount"),
+    expr("date_add(date('2025-01-01'), cast(id % 365 as int))").alias("event_date"),
+)
+iceberg_df.write.mode("append").saveAsTable("demo.delta.iceberg_uniform_events")
+print(f"✅ Inserted {spark.table('demo.delta.iceberg_uniform_events').count()} rows")
+
+# --- 3. Append more data (creates a new Delta version / Iceberg snapshot) ---
+append_df = spark.range(5000, 6000).select(
+    col("id").alias("event_id"),
+    (col("id") % 200).alias("user_id"),
+    lit("upgrade").alias("action"),
+    (col("id") * 2.0).alias("amount"),
+    expr("date_add(date('2025-06-01'), cast(id % 30 as int))").alias("event_date"),
+)
+append_df.write.mode("append").saveAsTable("demo.delta.iceberg_uniform_events")
+print("✅ Appended 1000 rows — new Delta version / Iceberg snapshot created")
+
+# --- 4. Time travel — query history (Delta versions = Iceberg snapshots) ---
+print("\n⏰ Delta UniForm history (Iceberg snapshots):")
+history_df = spark.sql("DESCRIBE HISTORY demo.delta.iceberg_uniform_events")
+history_df.select("version", "timestamp", "operation").display()
+
+# Read at version 1 (before append)
+v1_count = spark.sql("SELECT count(*) FROM demo.delta.iceberg_uniform_events VERSION AS OF 1").collect()[0][0]
+current_count = spark.sql("SELECT count(*) FROM demo.delta.iceberg_uniform_events").collect()[0][0]
+print(f"\n   Rows at version 1: {v1_count}")
+print(f"   Rows at latest version: {current_count}")
+print(f"   Difference: {current_count - v1_count} rows added via time travel")
+
+# --- 5. Show UniForm Iceberg properties ---
+print("\n🧊 UniForm Iceberg properties:")
+props = spark.sql("SHOW TBLPROPERTIES demo.delta.iceberg_uniform_events").collect()
+for row in props:
+    if "iceberg" in row["key"].lower() or "universal" in row["key"].lower():
+        print(f"   {row['key']} = {row['value']}")
+
+# --- 6. Delta vs Iceberg vs Parquet comparison ---
+print("\n📊 Format Comparison: Parquet vs Delta vs Iceberg")
+print("─" * 70)
+print(f"{'Feature':<22} {'Parquet':<16} {'Delta Lake':<16} {'Iceberg':<16}")
+print("─" * 70)
+print(f"{'File format':<22} {'Columnar':<16} {'Parquet+log':<16} {'Parquet+meta':<16}")
+print(f"{'ACID transactions':<22} {'No':<16} {'Yes':<16} {'Yes':<16}")
+print(f"{'Time travel':<22} {'No':<16} {'Yes':<16} {'Yes':<16}")
+print(f"{'Schema evolution':<22} {'Limited':<16} {'Yes':<16} {'Yes':<16}")
+print(f"{'Merge/upsert':<22} {'No':<16} {'Yes (MERGE)':<16} {'Yes (MERGE)':<16}")
+print(f"{'Change Data Feed':<22} {'No':<16} {'Yes':<16} {'Yes':<16}")
+print(f"{'Hidden partitioning':<22} {'No':<16} {'No':<16} {'Yes':<16}")
+print(f"{'Open multi-engine':<22} {'Yes':<16} {'Databricks':<16} {'Yes':<16}")
+print(f"{'Databricks default':<22} {'Import/export':<16} {'Yes (default)':<16} {'UniForm':<16}")
+print("─" * 70)
+print("\n💡 When to use each:")
+print("   Parquet: One-time exports, data exchange with external systems")
+print("   Delta:   Default on Databricks — all managed tables, pipelines, streaming")
+print("   Iceberg: Multi-engine environments (Spark + Trino + Flink), vendor neutrality")
+print("   UniForm: Delta table with Iceberg metadata — best of both worlds on Databricks")
+
+# COMMAND ----------
+
 # DBTITLE 1,Key Takeaways
 # MAGIC %md
 # MAGIC # Key Takeaways
@@ -344,6 +527,8 @@ spark.sql("SHOW TBLPROPERTIES demo.delta.customers").display()
 # MAGIC | **VACUUM** | Reclaim storage from orphaned files |
 # MAGIC | **Deletion Vectors** | Faster UPDATE/DELETE without rewriting whole files |
 # MAGIC | **Table Properties** | Tune retention, CDF, deletion vectors per table |
+# MAGIC | **Apache Parquet** | Columnar file format with compression — the base layer for Delta Lake |
+# MAGIC | **Apache Iceberg** | Open table format with ACID + time travel — multi-engine alternative to Delta |
 # MAGIC
 # MAGIC ## Best Practices
 # MAGIC 1. **Enable CDF before you need it** — cannot retroactively enable for past changes
@@ -351,6 +536,8 @@ spark.sql("SHOW TBLPROPERTIES demo.delta.customers").display()
 # MAGIC 3. **VACUUM with caution** — respect retention periods to avoid breaking time travel
 # MAGIC 4. **Use deletion vectors** for workloads with frequent UPDATE/DELETE
 # MAGIC 5. **Monitor `DESCRIBE HISTORY`** — detect unexpected operations or failed writes
+# MAGIC 6. **Use Delta by default** — Parquet for exports, Iceberg for multi-engine interoperability
+# MAGIC 7. **Compare formats pragmatically** — Delta for Databricks-native, Iceberg for vendor-neutral, Parquet for raw files
 
 # COMMAND ----------
 

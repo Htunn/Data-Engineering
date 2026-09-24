@@ -241,3 +241,5 @@ classDiagram
 - [Lakehouse Architecture](https://www.databricks.com/lakehouse)
 - [Delta Lake](https://docs.delta.io/)
 - [Spark Declarative Pipelines](https://docs.databricks.com/aws/en/ldp/index/)
+- [Apache Parquet](https://parquet.apache.org/)
+- [Apache Iceberg](https://iceberg.apache.org/)

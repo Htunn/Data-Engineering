@@ -14,7 +14,7 @@ A hands-on learning resource for the Databricks platform covering Data Engineeri
 |---|--------|-------------------|-------|
 | 01 | [01-medallion-fundamentals](01-medallion-fundamentals/simple_medallion_architecture) | Medallion Architecture, Delta Lake, Unity Catalog | Beginner |
 | 02 | [02-auto-loader](02-auto-loader/auto_loader_streaming) | Auto Loader, cloudFiles, schema inference & evolution, checkpointing, foreachBatch + MERGE | Intermediate |
-| 03 | [03-delta-advanced](03-delta-advanced/delta_advanced_features) | Delta MERGE, SCD Type 2, Change Data Feed, Time Travel, OPTIMIZE/ZORDER, VACUUM, Deletion Vectors | Advanced |
+| 03 | [03-delta-advanced](03-delta-advanced/delta_advanced_features) | Delta MERGE, SCD Type 2, Change Data Feed, Time Travel, OPTIMIZE/ZORDER, VACUUM, Deletion Vectors, Apache Parquet, Apache Iceberg | Advanced |
 | 04 | [04-sdp-pipelines](04-sdp-pipelines/sdp_medallion_pipeline) | Spark Declarative Pipelines (SDP), @dlt expectations, streaming tables, materialized views | Advanced |
 | 05 | [05-uc-governance](05-uc-governance/uc_governance_demo) | Unity Catalog, GRANT/REVOKE, tags, row-level security, column masking, audit logs, lineage | Advanced |
 | 06 | [06-structured-streaming](06-structured-streaming/structured_streaming_demo) | Structured Streaming, watermarks, windowed aggregations, deduplication, stream-stream joins, foreachBatch | Advanced |
@@ -114,6 +114,8 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | Data pipeline monitoring | 13 | ✅ Covered |
 | AI Platform integration (data → ML → GenAI) | 21 | ✅ Covered |
 | SLM / LLM fine-tuning (LoRA, PEFT, HuggingFace) | 22 | ✅ Covered |
+| Apache Parquet (columnar format, compression) | 03 | ✅ Covered |
+| Apache Iceberg (open table format, snapshots) | 03 | ✅ Covered |
 
 ## Databricks Platform Domains
 
@@ -733,7 +735,7 @@ kubectl apply -f k8s-configmap.yaml && kubectl apply -f k8s-cronjob.yaml
 ### 03 — Delta Lake Advanced (Advanced)
 1. Open `03-delta-advanced/delta_advanced_features.ipynb`
 2. Run all cells in sequence
-3. Demonstrates MERGE upserts, SCD Type 2, CDF, Time Travel, OPTIMIZE/ZORDER, VACUUM, and deletion vectors
+3. Demonstrates MERGE upserts, SCD Type 2, CDF, Time Travel, OPTIMIZE/ZORDER, VACUUM, deletion vectors, Apache Parquet (compression, predicate pushdown, column pruning), and Apache Iceberg (snapshots, time travel, format comparison)
 
 ### 04 — SDP Pipelines (Advanced)
 1. Open `04-sdp-pipelines/sdp_medallion_pipeline.ipynb`
@@ -1030,6 +1032,9 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - [PEFT (LoRA)](https://huggingface.co/docs/peft/index)
 - [DistilGPT2](https://huggingface.co/distilgpt2)
 - [Databricks GPU Compute](https://docs.databricks.com/aws/en/compute/gpu/)
+- [Apache Parquet](https://parquet.apache.org/)
+- [Apache Iceberg](https://iceberg.apache.org/)
+- [Databricks Iceberg Support](https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-iceberg-tables/)
 
 ## License
 
