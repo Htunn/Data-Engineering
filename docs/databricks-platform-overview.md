@@ -117,15 +117,19 @@ The Databricks Data + AI Platform is organised into 12 domains. Each domain solv
 - **Delta Lake** (default): Parquet files + transaction log. ACID, time travel, CDF, schema evolution, deletion vectors. The native format for all managed tables.
 - **Apache Parquet**: The columnar file format that Delta builds on. Use for one-time exports, data exchange, or when you only need fast columnar reads without ACID. Supports snappy, gzip, and zstd compression. Predicate pushdown and column pruning built-in.
 - **Apache Iceberg**: An open table format (like Delta) from the Apache community. Brings ACID transactions, schema evolution, and snapshot-based time travel to Parquet files. Use when you need multi-engine interoperability (Spark + Trino + Flink + Athena). On Databricks, use **Delta UniForm** — Delta tables with `delta.enableIcebergCompatV2 = true` and `delta.universalFormat.enabledFormats = iceberg` — to generate Iceberg metadata alongside Delta logs. External Iceberg catalogs are accessible via Lakehouse Federation.
+- **Apache Avro**: Row-based binary format with JSON schema. Default serialization for Kafka and Confluent Schema Registry. Best for event streaming pipelines where full-row reads and schema evolution matter. Spark supports `format("avro")` for read/write.
+- **Apache ORC** (Optimized Row Columnar): Columnar format from the Hadoop ecosystem. Default for Hive and Presto/Trino. Built-in lightweight and heavy-weight indexes for faster reads. Typically achieves better compression than Parquet with snappy. Spark supports `format("orc")`.
 
 **When to use each format**:
-| Format | Use When |
-|--------|----------|
-| Delta Lake | Default on Databricks — all managed tables, pipelines, streaming |
-| Apache Parquet | One-time exports, data exchange with external systems, raw file storage |
-| Apache Iceberg | Multi-engine environments (Spark + Trino + Flink), vendor-neutral requirements |
+| Format | Layout | Use When |
+|--------|--------|----------|
+| Delta Lake | Columnar + log | Default on Databricks — all managed tables, pipelines, streaming |
+| Apache Parquet | Columnar | One-time exports, data exchange, raw file storage |
+| Apache Iceberg | Columnar + meta | Multi-engine environments (Spark + Trino + Flink), vendor-neutral |
+| Apache Avro | Row-based | Kafka, event streaming, schema evolution for pipelines |
+| Apache ORC | Columnar | Hive/Presto ecosystems, best compression for analytics |
 
-**Module 03 demonstrates all three formats** with side-by-side comparison: Parquet compression codecs, predicate pushdown, column pruning; Iceberg snapshots, time travel; Delta vs Parquet vs Iceberg comparison table.
+**Module 03 demonstrates all five formats** with side-by-side comparison: Parquet compression codecs, predicate pushdown, column pruning; Iceberg Delta UniForm snapshots and time travel; Avro row-based read/write; ORC columnar read/write with predicate pushdown; full file size comparison across all formats; format decision guide.
 
 **Modules**: 01 (Medallion Fundamentals), 03 (Delta Lake Advanced)
 

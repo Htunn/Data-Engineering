@@ -18,6 +18,8 @@
 # MAGIC | **DESCRIBE HISTORY** | Audit trail of all table operations |
 # MAGIC | **Apache Parquet** | Columnar file format — compression, predicate pushdown, column pruning |
 # MAGIC | **Apache Iceberg** | Open table format — snapshots, schema evolution, time travel (Delta alternative) |
+# MAGIC | **Apache Avro** | Row-based file format — schema in JSON, Kafka native, event streaming |
+# MAGIC | **Apache ORC** | Columnar file format — Hive/Presto native, built-in indexes, excellent compression |
 # MAGIC
 # MAGIC ---
 
@@ -513,6 +515,102 @@ print("   UniForm: Delta table with Iceberg metadata — best of both worlds on 
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 11: Avro & ORC
+# Databricks notebook source
+# MAGIC %md
+# MAGIC ## Cell 11: Apache Avro & Apache ORC — Row vs Columnar Formats
+# MAGIC
+# MAGIC Beyond Parquet, two other open-source file formats are widely used in data engineering:
+# MAGIC
+# MAGIC **Apache Avro** — Row-based, schema-based, binary format:
+# MAGIC - **Row storage**: Data stored row-by-row — good for write-heavy workloads and full-row reads
+# MAGIC - **Schema in JSON**: Each file contains a JSON schema — self-describing
+# MAGIC - **Kafka native**: Default serialization format for Kafka and Confluent Schema Registry
+# MAGIC - **Schema evolution**: Supports adding optional fields and aliases for backward compatibility
+# MAGIC
+# MAGIC **Apache ORC** (Optimized Row Columnar) — Columnar, from Hadoop ecosystem:
+# MAGIC - **Columnar storage**: Like Parquet — column-by-column, enables pruning and predicate pushdown
+# MAGIC - **Built-in index**: Lightweight and heavy-weight indexes for faster reads
+# MAGIC - **Hive native**: Default format for Hive and Presto/Trino
+# MAGIC - **Excellent compression**: Typically smaller than Parquet with snappy due to better encoding
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col, rand, expr
+
+VOLUME_PATH = "/Volumes/demo/delta/file_formats"
+
+# --- 1. Write same data as Avro and ORC ---
+sample_df = spark.range(10000).select(
+    col("id").alias("event_id"),
+    (col("id") % 100).alias("user_id"),
+    expr("CASE WHEN id % 3 = 0 THEN 'click' WHEN id % 3 = 1 THEN 'view' ELSE 'purchase' END").alias("event_type"),
+    (rand() * 1000).alias("value"),
+    expr("date_add(date('2025-01-01'), cast(id % 365 as int))").alias("event_date"),
+)
+
+# Write as Avro (row-based)
+sample_df.write.mode("overwrite").format("avro").save(f"{VOLUME_PATH}/avro_data")
+print("✅ Wrote Avro files (row-based, snappy compressed)")
+
+# Write as ORC (columnar)
+sample_df.write.mode("overwrite").format("orc").save(f"{VOLUME_PATH}/orc_data")
+print("✅ Wrote ORC files (columnar, snappy compressed)")
+
+# --- 2. Read and verify schemas ---
+print("\n📋 Avro schema (self-describing, JSON schema embedded):")
+avro_df = spark.read.format("avro").load(f"{VOLUME_PATH}/avro_data")
+avro_df.printSchema()
+
+print("\n📋 ORC schema (columnar, self-describing):")
+orc_df = spark.read.format("orc").load(f"{VOLUME_PATH}/orc_data")
+orc_df.printSchema()
+
+# --- 3. All-format file size comparison ---
+print("\n📊 File size comparison (10,000 rows, same data, snappy compression):")
+print("─" * 55)
+formats = [
+    ("Avro (row-based)",    f"{VOLUME_PATH}/avro_data",      ".avro"),
+    ("ORC (columnar)",      f"{VOLUME_PATH}/orc_data",       ".orc"),
+    ("Parquet (snappy)",    f"{VOLUME_PATH}/parquet_snappy", ".parquet"),
+    ("Parquet (gzip)",      f"{VOLUME_PATH}/parquet_gzip",   ".parquet"),
+    ("Parquet (zstd)",      f"{VOLUME_PATH}/parquet_zstd",   ".parquet"),
+]
+for fmt_name, fmt_path, ext in formats:
+    files = dbutils.fs.ls(fmt_path)
+    data_files = [f for f in files if f.name.endswith(ext)]
+    total = sum(f.size for f in data_files)
+    print(f"   {fmt_name:25s}: {total / 1024:.1f} KB ({len(data_files)} files)")
+print("─" * 55)
+print("   💡 ORC is smallest — better built-in encoding than Parquet")
+print("   💡 Avro is largest — row-based format has less column-level compression")
+
+# --- 4. ORC predicate pushdown & column pruning (same as Parquet) ---
+print("\n🔍 ORC predicate pushdown (columnar advantage):")
+orc_filtered = spark.read.format("orc").load(f"{VOLUME_PATH}/orc_data").filter(col("event_type") == "click").filter(col("user_id") < 10)
+print(f"   Filtered rows: {orc_filtered.count()}")
+
+print("\n✂️ ORC column pruning:")
+orc_pruned = spark.read.format("orc").load(f"{VOLUME_PATH}/orc_data").select("event_id", "event_type")
+print(f"   Rows: {orc_pruned.count()}, Columns read: {len(orc_pruned.columns)}")
+
+# --- 5. When to use each file format ---
+print("\n📊 File Format Decision Guide:")
+print("─" * 70)
+print(f"{'Format':<14} {'Layout':<12} {'Best For':<30} {'Origin':<14}")
+print("─" * 70)
+print(f"{'Parquet':<14} {'Columnar':<12} {'Analytics, Delta base':<30} {'Apache':<14}")
+print(f"{'ORC':<14} {'Columnar':<12} {'Hive/Presto analytics':<30} {'Hadoop':<14}")
+print(f"{'Avro':<14} {'Row-based':<12} {'Kafka, event streaming, ETL':<30} {'Apache':<14}")
+print(f"{'Delta':<14} {'Col+log':<12} {'Databricks default (ACID)':<30} {'Databricks':<14}")
+print(f"{'Iceberg':<14} {'Col+meta':<12} {'Multi-engine (Trino+Flink)':<30} {'Apache':<14}")
+print("─" * 70)
+print("\n💡 Key insight: Parquet and ORC are both columnar — similar performance.")
+print("   Avro is row-based — better for streaming/event pipelines (Kafka), not analytics.")
+print("   On Databricks: use Delta (Parquet-based) by default; Avro/ORC for external interop.")
+
+# COMMAND ----------
+
 # DBTITLE 1,Key Takeaways
 # MAGIC %md
 # MAGIC # Key Takeaways
@@ -529,6 +627,8 @@ print("   UniForm: Delta table with Iceberg metadata — best of both worlds on 
 # MAGIC | **Table Properties** | Tune retention, CDF, deletion vectors per table |
 # MAGIC | **Apache Parquet** | Columnar file format with compression — the base layer for Delta Lake |
 # MAGIC | **Apache Iceberg** | Open table format with ACID + time travel — multi-engine alternative to Delta |
+# MAGIC | **Apache Avro** | Row-based format — Kafka native, schema in JSON, event streaming |
+# MAGIC | **Apache ORC** | Columnar format — Hive/Presto native, built-in indexes, excellent compression |
 # MAGIC
 # MAGIC ## Best Practices
 # MAGIC 1. **Enable CDF before you need it** — cannot retroactively enable for past changes
@@ -538,6 +638,8 @@ print("   UniForm: Delta table with Iceberg metadata — best of both worlds on 
 # MAGIC 5. **Monitor `DESCRIBE HISTORY`** — detect unexpected operations or failed writes
 # MAGIC 6. **Use Delta by default** — Parquet for exports, Iceberg for multi-engine interoperability
 # MAGIC 7. **Compare formats pragmatically** — Delta for Databricks-native, Iceberg for vendor-neutral, Parquet for raw files
+# MAGIC 8. **Avro for streaming** — row-based, Kafka native, schema evolution for event pipelines
+# MAGIC 9. **ORC for Hive ecosystems** — columnar like Parquet, best compression, Presto/Trino native
 
 # COMMAND ----------
 

@@ -243,3 +243,5 @@ classDiagram
 - [Spark Declarative Pipelines](https://docs.databricks.com/aws/en/ldp/index/)
 - [Apache Parquet](https://parquet.apache.org/)
 - [Apache Iceberg](https://iceberg.apache.org/)
+- [Apache Avro](https://avro.apache.org/)
+- [Apache ORC](https://orc.apache.org/)
