@@ -20,6 +20,8 @@
 # MAGIC | **Apache Iceberg** | Open table format — snapshots, schema evolution, time travel (Delta alternative) |
 # MAGIC | **Apache Avro** | Row-based file format — schema in JSON, Kafka native, event streaming |
 # MAGIC | **Apache ORC** | Columnar file format — Hive/Presto native, built-in indexes, excellent compression |
+# MAGIC | **JSON** | Text-based semi-structured format — schema on read, nested data, APIs and logs |
+# MAGIC | **CSV** | Text-based flat format — human-readable, universal data exchange, no compression |
 # MAGIC
 # MAGIC ---
 
@@ -611,6 +613,118 @@ print("   On Databricks: use Delta (Parquet-based) by default; Avro/ORC for exte
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 12: JSON & CSV
+# Databricks notebook source
+# MAGIC %md
+# MAGIC ## Cell 12: JSON & CSV — Text-Based File Formats
+# MAGIC
+# MAGIC JSON and CSV are human-readable text formats — the most common formats for data exchange, APIs, and external data sources.
+# MAGIC
+# MAGIC **JSON** — Semi-structured, text-based:
+# MAGIC - **Schema on read**: Spark infers schema from the data — no schema definition needed
+# MAGIC - **Nested data**: Supports arrays and objects — great for semi-structured data (APIs, logs)
+# MAGIC - **No compression**: Text-based — much larger than binary formats (Avro, Parquet, ORC)
+# MAGIC - **Type loss**: Dates become strings, integers may become longs — type information not preserved
+# MAGIC - **JSON Lines (NDJSON)**: One JSON object per line — Spark's default JSON format
+# MAGIC
+# MAGIC **CSV** — Flat, human-readable, universally supported:
+# MAGIC - **Simple**: One row per line, comma-separated — open in any text editor or spreadsheet
+# MAGIC - **Schema inference**: `inferSchema=true` recovers types but is slower than explicit schema
+# MAGIC - **No compression**: Text-based — no built-in compression
+# MAGIC - **No nesting**: Flat only — cannot represent arrays or nested objects
+# MAGIC - **Type recovery**: With `inferSchema`, Spark can detect integers, doubles, dates, booleans
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col, rand, expr
+
+VOLUME_PATH = "/Volumes/demo/delta/file_formats"
+
+# --- 1. Write same data as JSON and CSV ---
+sample_df = spark.range(10000).select(
+    col("id").alias("event_id"),
+    (col("id") % 100).alias("user_id"),
+    expr("CASE WHEN id % 3 = 0 THEN 'click' WHEN id % 3 = 1 THEN 'view' ELSE 'purchase' END").alias("event_type"),
+    (rand() * 1000).alias("value"),
+    expr("date_add(date('2025-01-01'), cast(id % 365 as int))").alias("event_date"),
+)
+
+# Write as JSON (JSON Lines / NDJSON — one JSON object per line)
+sample_df.write.mode("overwrite").format("json").save(f"{VOLUME_PATH}/json_data")
+print("✅ Wrote JSON files (JSON Lines / NDJSON format)")
+
+# Write as CSV (with header row)
+sample_df.write.mode("overwrite").option("header", "true").format("csv").save(f"{VOLUME_PATH}/csv_data")
+print("✅ Wrote CSV files (with header)")
+
+# --- 2. Read and inspect schemas ---
+print("\n📋 JSON schema (inferred — note type differences):")
+json_df = spark.read.format("json").load(f"{VOLUME_PATH}/json_data")
+json_df.printSchema()
+print("   ⚠️ event_date is string — JSON loses date type information")
+
+print("\n📋 CSV schema (with inferSchema — note type differences):")
+csv_df = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load(f"{VOLUME_PATH}/csv_data")
+csv_df.printSchema()
+print("   ⚠️ event_id/user_id are integer (not long) — CSV inferSchema may differ")
+
+# --- 3. Full file size comparison across ALL 7 formats ---
+print("\n📊 File size comparison (10,000 rows, same data):")
+print("─" * 60)
+formats = [
+    ("ORC (columnar)",        f"{VOLUME_PATH}/orc_data",       ".orc"),
+    ("Parquet (zstd)",        f"{VOLUME_PATH}/parquet_zstd",   ".parquet"),
+    ("Parquet (gzip)",        f"{VOLUME_PATH}/parquet_gzip",   ".parquet"),
+    ("Parquet (snappy)",      f"{VOLUME_PATH}/parquet_snappy", ".parquet"),
+    ("Avro (row-based)",      f"{VOLUME_PATH}/avro_data",      ".avro"),
+    ("CSV (with header)",     f"{VOLUME_PATH}/csv_data",       ".csv"),
+    ("JSON (NDJSON)",        f"{VOLUME_PATH}/json_data",      ".json"),
+]
+for fmt_name, fmt_path, ext in formats:
+    files = dbutils.fs.ls(fmt_path)
+    data_files = [f for f in files if f.name.endswith(ext)]
+    total = sum(f.size for f in data_files)
+    print(f"   {fmt_name:25s}: {total / 1024:.1f} KB")
+print("─" * 60)
+print("   💡 Binary formats (ORC, Parquet, Avro) are 5-10x smaller than text (JSON, CSV)")
+print("   💡 JSON is largest — no compression, field names repeated in every record")
+print("   💡 CSV is smaller than JSON — no field names per row, just header")
+
+# --- 4. CSV with explicit schema (recommended for production) ---
+print("\n🔧 CSV with explicit schema (production best practice):")
+from pyspark.sql.types import StructType, StructField, LongType, StringType, DoubleType, DateType
+
+explicit_schema = StructType([
+    StructField("event_id", LongType(), True),
+    StructField("user_id", LongType(), True),
+    StructField("event_type", StringType(), True),
+    StructField("value", DoubleType(), True),
+    StructField("event_date", DateType(), True),
+])
+csv_typed = spark.read.format("csv").option("header", "true").schema(explicit_schema).load(f"{VOLUME_PATH}/csv_data")
+print(f"   Rows: {csv_typed.count()}, event_id type: {csv_typed.schema['event_id'].dataType}")
+print("   ✅ Explicit schema overrides inferSchema — faster and type-safe")
+
+# --- 5. Complete format decision guide ---
+print("\n📊 Complete File Format Decision Guide:")
+print("─" * 75)
+print(f"{'Format':<12} {'Layout':<12} {'Compression':<14} {'Best For':<37}")
+print("─" * 75)
+print(f"{'Delta':<12} {'Col+log':<12} {'Built-in':<14} {'Databricks default — ACID, streaming, pipelines':<37}")
+print(f"{'Parquet':<12} {'Columnar':<12} {'snappy/gzip/zstd':<14} {'Analytics, data exchange, Delta base':<37}")
+print(f"{'ORC':<12} {'Columnar':<12} {'snappy/zlib':<14} {'Hive/Presto/Trino, best compression':<37}")
+print(f"{'Avro':<12} {'Row-based':<12} {'snappy/deflate':<14} {'Kafka, event streaming, schema evolution':<37}")
+print(f"{'Iceberg':<12} {'Col+meta':<12} {'Built-in':<14} {'Multi-engine (Spark+Trino+Flink), vendor-neutral':<37}")
+print(f"{'JSON':<12} {'Text':<12} {'None':<14} {'APIs, logs, semi-structured, nested data':<37}")
+print(f"{'CSV':<12} {'Text':<12} {'None':<14} {'Data exchange, exports, human-readable':<37}")
+print("─" * 75)
+print("\n💡 Key takeaways:")
+print("   Binary (Parquet/ORC/Avro) = 5-10x smaller + faster reads than text (JSON/CSV)")
+print("   JSON/CSV = human-readable, universal, but no compression and type loss")
+print("   On Databricks: Delta (Parquet-based) for everything; JSON/CSV for ingestion from external sources")
+
+# COMMAND ----------
+
 # DBTITLE 1,Key Takeaways
 # MAGIC %md
 # MAGIC # Key Takeaways
@@ -629,6 +743,8 @@ print("   On Databricks: use Delta (Parquet-based) by default; Avro/ORC for exte
 # MAGIC | **Apache Iceberg** | Open table format with ACID + time travel — multi-engine alternative to Delta |
 # MAGIC | **Apache Avro** | Row-based format — Kafka native, schema in JSON, event streaming |
 # MAGIC | **Apache ORC** | Columnar format — Hive/Presto native, built-in indexes, excellent compression |
+# MAGIC | **JSON** | Text-based, schema on read — APIs, logs, nested/semi-structured data |
+# MAGIC | **CSV** | Text-based, human-readable — universal data exchange, exports, no compression |
 # MAGIC
 # MAGIC ## Best Practices
 # MAGIC 1. **Enable CDF before you need it** — cannot retroactively enable for past changes
@@ -640,6 +756,8 @@ print("   On Databricks: use Delta (Parquet-based) by default; Avro/ORC for exte
 # MAGIC 7. **Compare formats pragmatically** — Delta for Databricks-native, Iceberg for vendor-neutral, Parquet for raw files
 # MAGIC 8. **Avro for streaming** — row-based, Kafka native, schema evolution for event pipelines
 # MAGIC 9. **ORC for Hive ecosystems** — columnar like Parquet, best compression, Presto/Trino native
+# MAGIC 10. **JSON/CSV for ingestion** — text formats for external sources; convert to Delta for storage and analytics
+# MAGIC 11. **Use explicit schema for CSV** — `inferSchema=true` is slow and may guess wrong types
 
 # COMMAND ----------
 
