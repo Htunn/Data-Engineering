@@ -32,6 +32,16 @@ A hands-on learning resource for the Databricks platform covering Data Engineeri
 | 18 | [18-git-integration](18-git-integration/git_integration_demo) | Git folders, branch management, Git CLI, SDK API, CI/CD with DAB, GitHub Actions | Intermediate |
 | 19 | [19-lakeflow-connect](19-lakeflow-connect/lakeflow_connect_demo) | Lakeflow Connect: managed ingestion from Salesforce, MySQL, PostgreSQL, Google Ads, HubSpot, ServiceNow | Advanced |
 | 20 | [20-lakebase](20-lakebase/lakebase_demo) | Lakebase: managed PostgreSQL, projects, branches, autoscaling endpoints, Data API, reverse ETL to Delta Lake | Advanced |
+| 21 | [21-ai-platform](21-ai-platform/ai_platform_demo) | AI Platform: raw data → medallion → ML training → embeddings & Vector Search → RAG → LLM serving → AI Gateway → Jobs & DAB orchestration | Advanced |
+| 22 | [22-slm-training](22-slm-training/slm_kubernetes_finetune) | SLM Fine-Tuning: DistilGPT2 (82M) + LoRA/PEFT on Kubernetes Q&A data, GPU serverless, MLflow + UC model registry | Advanced |
+| 23 | [23-lakeflow-designer](23-lakeflow-designer/lakeflow_designer_demo) | Lakeflow Designer: visual data prep, no-code canvas, built-in operators, Genie Code natural language transforms, production deployment | Intermediate |
+| 24 | [24-agent-development](24-agent-development/agent_development_demo) | Agent Development: UC functions as tools, AI functions (ai_query, ai_analyze_sentiment), Supervisor Agent, MCP servers, custom agent code, Databricks Apps deployment | Advanced |
+| 25 | [25-ai-evaluation](25-ai-evaluation/ai_evaluation_demo) | AI Evaluation: MLflow Tracing, LLM judges (relevance, groundedness, safety), evaluation datasets, production monitoring, human feedback, Review App | Advanced |
+| 26 | [26-cost-optimization](26-cost-optimization/cost_optimization_demo) | Cost Optimization: system.billing queries, compute policies, budgeting, tagging, serverless vs classic comparison, right-sizing, Photon, FinOps workflow | Intermediate |
+| 27 | [27-data-quality-framework](27-data-quality-framework/data_quality_framework_demo) | Data Quality: Delta constraints (CHECK, NOT NULL), data profiling, anomaly detection, data contracts, automated testing, DQ monitoring | Advanced |
+| 28 | [28-performance-tuning](28-performance-tuning/performance_tuning_demo) | Performance Tuning: liquid clustering, query profiling, Photon engine, Adaptive Query Execution (AQE), broadcast joins, skew handling, caching | Advanced |
+| 29 | [29-uc-advanced](29-uc-advanced/uc_advanced_demo) | UC Advanced: information schema queries, ABAC (row filters + column masks), Databricks Marketplace, auto-classification, lineage API | Advanced |
+| 30 | [30-disaster-recovery](30-disaster-recovery/disaster_recovery_demo) | Disaster Recovery: DEEP CLONE backups, Time Travel recovery (RESTORE TABLE), cross-region replication, workspace migration, DR workflow | Advanced |
 
 ## Documentation
 
@@ -89,6 +99,17 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | AI Platform (Raw Data → LLM Inference) | 21 | ✅ Covered |
 | AI Gateway (rate limiting, fallback, logging) | 10, 21 | ✅ Covered |
 | SLM Fine-Tuning (LoRA/PEFT, MLflow, UC Registry) | 22 | ✅ Covered |
+| Lakeflow Designer (visual data prep) | 23 | ✅ Covered |
+| Agent Development (UC functions as tools, MCP) | 24 | ✅ Covered |
+| Supervisor Agent (multi-agent orchestration) | 24 | ✅ Covered |
+| MLflow Tracing (GenAI observability) | 25 | ✅ Covered |
+| LLM Judges (relevance, groundedness, safety) | 25 | ✅ Covered |
+| Cost Optimization (FinOps, compute policies) | 26 | ✅ Covered |
+| Data Quality Constraints (CHECK, NOT NULL) | 27 | ✅ Covered |
+| Performance Tuning (AQE, Photon, liquid clustering) | 28 | ✅ Covered |
+| ABAC (row filters, column masks, governed tags) | 29 | ✅ Covered |
+| Databricks Marketplace (data products) | 29 | ✅ Covered |
+| Disaster Recovery (DEEP CLONE, RESTORE TABLE) | 30 | ✅ Covered |
 
 ### Data Engineering Topics
 
@@ -121,6 +142,16 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | JSON (semi-structured, schema on read) | 03 | ✅ Covered |
 | CSV (text-based, universal data exchange) | 03 | ✅ Covered |
 | XML (text-based markup, tag structure, legacy enterprise) | 03 | ✅ Covered |
+| Visual data preparation (no-code, drag-and-drop) | 23 | ✅ Covered |
+| Agent tool calling (UC functions, MCP servers) | 24 | ✅ Covered |
+| Multi-agent orchestration (Supervisor Agent) | 24 | ✅ Covered |
+| LLM evaluation (judges, tracing, human feedback) | 25 | ✅ Covered |
+| FinOps (cost monitoring, budgeting, right-sizing) | 26 | ✅ Covered |
+| Data quality constraints (CHECK, NOT NULL, PK/FK) | 27 | ✅ Covered |
+| Statistical anomaly detection | 27 | ✅ Covered |
+| Query optimization (AQE, broadcast joins, caching) | 28 | ✅ Covered |
+| ABAC policies (row filters, column masks) | 29 | ✅ Covered |
+| Disaster recovery (DEEP CLONE, Time Travel restore) | 30 | ✅ Covered |
 
 ## Databricks Platform Domains
 
@@ -294,16 +325,18 @@ The Databricks Data + AI Platform is organised into 12 domains. Each domain solv
 |--------|---------|
 | Compute | All (foundational) |
 | Data Ingestion | 02, 06, 19 |
-| Data Storage (Delta Lake) | 01, 03 |
-| Data Governance (UC) | 05 |
-| Data Engineering | 01, 02, 03, 04, 06 |
+| Data Storage (Delta Lake) | 01, 03, 28 |
+| Data Governance (UC) | 05, 29 |
+| Data Engineering | 01, 02, 03, 04, 06, 23, 27 |
 | SQL Analytics | 08, 16 |
 | AI / ML | 07, 09, 11, 22 |
-| GenAI | 10, 21 |
+| GenAI | 10, 21, 24, 25 |
 | Orchestration | 12, 18 |
-| Data Sharing | 15 |
-| App Development | 17 |
-| Monitoring & Observability | 13 |
+| Data Sharing | 15, 29 |
+| App Development | 17, 24 |
+| Monitoring & Observability | 13, 25, 26 |
+| Performance & Cost | 26, 28 |
+| Disaster Recovery | 30 |
 
 ## Architecture — Component Diagram
 
@@ -587,6 +620,14 @@ flowchart TD
     ROOT --> M20[20-lakebase/]
     ROOT --> M21[21-ai-platform/]
     ROOT --> M22[22-slm-training/]
+    ROOT --> M23[23-lakeflow-designer/]
+    ROOT --> M24[24-agent-development/]
+    ROOT --> M25[25-ai-evaluation/]
+    ROOT --> M26[26-cost-optimization/]
+    ROOT --> M27[27-data-quality-framework/]
+    ROOT --> M28[28-performance-tuning/]
+    ROOT --> M29[29-uc-advanced/]
+    ROOT --> M30[30-disaster-recovery/]
     ROOT --> K8S[k8s/]
 
     DOCS --> D1[medallion-architecture.md]
@@ -661,6 +702,22 @@ dataengineering/
     └── ai_platform_demo.ipynb              # 21 — AI Platform: raw data → LLM inference
 ├── 22-slm-training/
 │   └── slm_kubernetes_finetune.ipynb        # 22 — SLM fine-tuning (DistilGPT2 + LoRA)
+├── 23-lakeflow-designer/
+│   └── lakeflow_designer_demo.ipynb          # 23 — Visual data prep, Genie Code
+├── 24-agent-development/
+│   └── agent_development_demo.ipynb         # 24 — Custom agents, MCP, Supervisor Agent
+├── 25-ai-evaluation/
+│   └── ai_evaluation_demo.ipynb             # 25 — MLflow Tracing, LLM judges
+├── 26-cost-optimization/
+│   └── cost_optimization_demo.ipynb         # 26 — FinOps, system.billing, compute policies
+├── 27-data-quality-framework/
+│   └── data_quality_framework_demo.ipynb    # 27 — DQ constraints, profiling, anomalies
+├── 28-performance-tuning/
+│   └── performance_tuning_demo.ipynb        # 28 — AQE, Photon, broadcast joins, caching
+├── 29-uc-advanced/
+│   └── uc_advanced_demo.ipynb               # 29 — ABAC, Marketplace, information schema
+├── 30-disaster-recovery/
+│   └── disaster_recovery_demo.ipynb         # 30 — DEEP CLONE, Time Travel restore
 └── k8s/                                      # K8s + Databricks integration (Pattern 1)
     ├── trigger_pipeline.py                  # SDK trigger script
     ├── Dockerfile                           # Trigger pod image
@@ -690,6 +747,13 @@ demo (catalog)
 └── lakebase (schema)    # 20 — Lakebase synced tables
 └── ai_platform (schema) # 21 — AI platform: bronze/silver/gold, embeddings, RAG
 └── slm (schema)         # 22 — SLM training data, model artifacts
+├── designer (schema)   # 23 — Lakeflow Designer demos
+├── agents (schema)     # 24 — Agent development tools
+├── ai_eval (schema)    # 25 — AI evaluation datasets
+├── cost (schema)       # 26 — Cost tracking tables
+├── dq (schema)         # 27 — Data quality demos
+├── perf (schema)       # 28 — Performance tuning demos
+└── dr (schema)         # 30 — Disaster recovery demos
 ```
 
 ## Prerequisites
@@ -841,6 +905,46 @@ kubectl apply -f k8s-configmap.yaml && kubectl apply -f k8s-cronjob.yaml
 2. **Requires Serverless GPU compute** (AI v5 base environment)
 3. Run all cells in sequence: data prep, tokenization, LoRA fine-tuning, MLflow logging, UC registration, inference
 4. Fine-tunes DistilGPT2 (82M params) on Kubernetes Q&A data using LoRA/PEFT
+
+### 23 — Lakeflow Designer (Intermediate)
+1. Open `23-lakeflow-designer/lakeflow_designer_demo.ipynb`
+2. Run all cells in sequence
+3. Demonstrates visual data prep concepts, operator equivalents, Genie Code natural language transforms, and production deployment patterns
+
+### 24 — Agent Development (Advanced)
+1. Open `24-agent-development/agent_development_demo.ipynb`
+2. Run all cells in sequence
+3. Demonstrates UC functions as agent tools, AI functions (ai_analyze_sentiment), Supervisor Agent architecture, custom agent code patterns, and Databricks Apps deployment
+
+### 25 — AI Evaluation (Advanced)
+1. Open `25-ai-evaluation/ai_evaluation_demo.ipynb`
+2. Run all cells in sequence
+3. Demonstrates MLflow Tracing, LLM judges (relevance, groundedness, safety), evaluation datasets, production monitoring, and human feedback patterns
+
+### 26 — Cost Optimization (Intermediate)
+1. Open `26-cost-optimization/cost_optimization_demo.ipynb`
+2. Run all cells in sequence
+3. Queries system.billing for spending patterns, demonstrates serverless vs classic cost comparison, compute policies, budgeting, and FinOps workflow
+
+### 27 — Data Quality Framework (Advanced)
+1. Open `27-data-quality-framework/data_quality_framework_demo.ipynb`
+2. Run all cells in sequence
+3. Demonstrates Delta constraints (CHECK, NOT NULL), data profiling with statistics, anomaly detection using z-scores, and data contracts
+
+### 28 — Performance Tuning (Advanced)
+1. Open `28-performance-tuning/performance_tuning_demo.ipynb`
+2. Run all cells in sequence
+3. Demonstrates liquid clustering, Adaptive Query Execution (AQE), broadcast join optimization, query plan analysis, and Photon engine
+
+### 29 — UC Advanced (Advanced)
+1. Open `29-uc-advanced/uc_advanced_demo.ipynb`
+2. Run all cells in sequence
+3. Demonstrates information schema queries, ABAC policies (row filters + column masks), Databricks Marketplace concepts, and lineage API
+
+### 30 — Disaster Recovery (Advanced)
+1. Open `30-disaster-recovery/disaster_recovery_demo.ipynb`
+2. Run all cells in sequence
+3. Demonstrates DEEP CLONE for backups, Time Travel recovery with RESTORE TABLE, cross-region replication concepts, and DR workflow
 
 ## Documentation
 
@@ -999,6 +1103,14 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - **SLM Training**: Domain-specific Small Language Model fine-tuning on GPU serverless (DistilGPT2 + LoRA/PEFT, HuggingFace Trainer, MLflow, UC model registry, inference)
 - **K8s Integration**: Run pipelines from Kubernetes (CronJob + SDK trigger, Databricks Connect, GitOps with DAB). OAuth M2M auth, security hardening
 - **Local Development**: Databricks Connect on Mac M3 Pro with Apple Silicon GPU acceleration, Makefile for automated setup, and test script for full pipeline verification
+- **Lakeflow Designer**: Visual data prep with no-code canvas, built-in operators, Genie Code natural language transforms, and production-ready code generation
+- **Agent Development**: UC functions as tools, AI functions (ai_query, ai_analyze_sentiment), Supervisor Agent for multi-agent orchestration, MCP servers, custom agent deployment on Databricks Apps
+- **AI Evaluation**: MLflow Tracing for agent observability, LLM judges (relevance, groundedness, safety), evaluation datasets, production monitoring, human feedback via Review App
+- **Cost Optimization**: system.billing queries, compute policies, budgeting, tagging for cost attribution, serverless vs classic comparison, Photon engine, FinOps workflow
+- **Data Quality Framework**: Delta constraints (CHECK, NOT NULL), data profiling, statistical anomaly detection, data contracts, automated testing
+- **Performance Tuning**: Liquid clustering, Adaptive Query Execution (AQE), Photon vectorized engine, broadcast joins, query plan analysis, caching strategies
+- **UC Advanced**: Information schema queries, ABAC policies (row filters + column masks), Databricks Marketplace, auto-classification, lineage API
+- **Disaster Recovery**: DEEP CLONE backups, Time Travel recovery (RESTORE TABLE), cross-region replication, workspace migration, DR workflow
 
 ## References
 
@@ -1046,6 +1158,18 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - [RFC 4180 — CSV Format](https://datatracker.ietf.org/doc/html/rfc4180)
 - [W3C XML Specification](https://www.w3.org/XML/)
 - [Spark XML Package](https://docs.databricks.com/aws/en/external-data/formats/xml)
+- [Lakeflow Designer](https://docs.databricks.com/aws/en/ingestion/lakeflow-designer/)
+- [MCP (Model Context Protocol)](https://docs.databricks.com/aws/en/agents/mcp/)
+- [Supervisor Agent](https://docs.databricks.com/aws/en/agents/supervisor-agent/)
+- [MLflow Tracing](https://mlflow.org/docs/latest/llms/tracing/)
+- [LLM Judges](https://docs.databricks.com/aws/en/generative-ai/agent-evaluation/)
+- [Databricks FinOps](https://docs.databricks.com/aws/en/admin/system-tables/)
+- [Delta Constraints](https://docs.databricks.com/aws/en/data-governance/unity-catalog/constraints/)
+- [Adaptive Query Execution](https://docs.databricks.com/aws/en/optimization/aqe/)
+- [ABAC (Row Filters & Column Masks)](https://docs.databricks.com/aws/en/data-governance/unity-catalog/row-filters-col-masks/)
+- [Databricks Marketplace](https://docs.databricks.com/aws/en/data-sharing/marketplace/)
+- [DEEP CLONE](https://docs.databricks.com/aws/en/delta/table-features/deep-clone/)
+- [RESTORE TABLE](https://docs.databricks.com/aws/en/delta/table-features/restore/)
 
 ## License
 
