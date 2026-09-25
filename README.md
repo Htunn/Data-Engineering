@@ -14,7 +14,7 @@ A hands-on learning resource for the Databricks platform covering Data Engineeri
 |---|--------|-------------------|-------|
 | 01 | [01-medallion-fundamentals](01-medallion-fundamentals/simple_medallion_architecture) | Medallion Architecture, Delta Lake, Unity Catalog | Beginner |
 | 02 | [02-auto-loader](02-auto-loader/auto_loader_streaming) | Auto Loader, cloudFiles, schema inference & evolution, checkpointing, foreachBatch + MERGE | Intermediate |
-| 03 | [03-delta-advanced](03-delta-advanced/delta_advanced_features) | Delta MERGE, SCD Type 2, Change Data Feed, Time Travel, OPTIMIZE/ZORDER, VACUUM, Deletion Vectors, Apache Parquet, Apache Iceberg, Apache Avro, Apache ORC, JSON, CSV | Advanced |
+| 03 | [03-delta-advanced](03-delta-advanced/delta_advanced_features) | Delta MERGE, SCD Type 2, Change Data Feed, Time Travel, OPTIMIZE/ZORDER, VACUUM, Deletion Vectors, Apache Parquet, Apache Iceberg, Apache Avro, Apache ORC, JSON, CSV, XML | Advanced |
 | 04 | [04-sdp-pipelines](04-sdp-pipelines/sdp_medallion_pipeline) | Spark Declarative Pipelines (SDP), @dlt expectations, streaming tables, materialized views | Advanced |
 | 05 | [05-uc-governance](05-uc-governance/uc_governance_demo) | Unity Catalog, GRANT/REVOKE, tags, row-level security, column masking, audit logs, lineage | Advanced |
 | 06 | [06-structured-streaming](06-structured-streaming/structured_streaming_demo) | Structured Streaming, watermarks, windowed aggregations, deduplication, stream-stream joins, foreachBatch | Advanced |
@@ -120,6 +120,7 @@ Conceptual reference docs — not scenario walkthroughs. Read these before divin
 | Apache ORC (columnar, Hive/Presto native) | 03 | ✅ Covered |
 | JSON (semi-structured, schema on read) | 03 | ✅ Covered |
 | CSV (text-based, universal data exchange) | 03 | ✅ Covered |
+| XML (text-based markup, tag structure, legacy enterprise) | 03 | ✅ Covered |
 
 ## Databricks Platform Domains
 
@@ -739,7 +740,7 @@ kubectl apply -f k8s-configmap.yaml && kubectl apply -f k8s-cronjob.yaml
 ### 03 — Delta Lake Advanced (Advanced)
 1. Open `03-delta-advanced/delta_advanced_features.ipynb`
 2. Run all cells in sequence
-3. Demonstrates MERGE upserts, SCD Type 2, CDF, Time Travel, OPTIMIZE/ZORDER, VACUUM, deletion vectors, Apache Parquet (compression, predicate pushdown, column pruning), Apache Iceberg (Delta UniForm, snapshots, time travel), Apache Avro (row-based, Kafka native), Apache ORC (columnar, Hive/Presto), JSON (schema on read, type loss), CSV (explicit schema, inferSchema), and full 7-format file size comparison
+3. Demonstrates MERGE upserts, SCD Type 2, CDF, Time Travel, OPTIMIZE/ZORDER, VACUUM, deletion vectors, Apache Parquet (compression, predicate pushdown, column pruning), Apache Iceberg (Delta UniForm, snapshots, time travel), Apache Avro (row-based, Kafka native), Apache ORC (columnar, Hive/Presto), JSON (schema on read, type loss), CSV (explicit schema, inferSchema), XML (rowTag, nested elements), and full 8-format file size comparison
 
 ### 04 — SDP Pipelines (Advanced)
 1. Open `04-sdp-pipelines/sdp_medallion_pipeline.ipynb`
@@ -1043,6 +1044,8 @@ See [Module 11](11-end-to-end-ml-pipeline/end_to_end_ml_pipeline) for the comple
 - [Apache ORC](https://orc.apache.org/)
 - [JSON Lines (NDJSON)](https://jsonlines.org/)
 - [RFC 4180 — CSV Format](https://datatracker.ietf.org/doc/html/rfc4180)
+- [W3C XML Specification](https://www.w3.org/XML/)
+- [Spark XML Package](https://docs.databricks.com/aws/en/external-data/formats/xml)
 
 ## License
 

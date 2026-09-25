@@ -22,6 +22,7 @@
 # MAGIC | **Apache ORC** | Columnar file format — Hive/Presto native, built-in indexes, excellent compression |
 # MAGIC | **JSON** | Text-based semi-structured format — schema on read, nested data, APIs and logs |
 # MAGIC | **CSV** | Text-based flat format — human-readable, universal data exchange, no compression |
+# MAGIC | **XML** | Text-based markup format — tag structure, nested elements, legacy enterprise systems |
 # MAGIC
 # MAGIC ---
 
@@ -725,6 +726,108 @@ print("   On Databricks: Delta (Parquet-based) for everything; JSON/CSV for inge
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 13: XML
+# Databricks notebook source
+# MAGIC %md
+# MAGIC ## Cell 13: XML — The Markup Language Format
+# MAGIC
+# MAGIC XML (eXtensible Markup Language) is a text-based format using tags to structure data — the original data exchange format before JSON.
+# MAGIC
+# MAGIC **Key XML concepts**:
+# MAGIC - **Tag-based structure**: `<event><id>1</id><type>click</type></event>` — hierarchical, self-describing
+# MAGIC - **Nested elements**: Supports arbitrary nesting — structs become child elements
+# MAGIC - **Attributes**: Elements can have attributes (`<event id="1" type="click"/>`) — compact metadata
+# MAGIC - **rowTag / rootTag**: Spark XML uses `rowTag` to identify row elements and `rootTag` for the document root
+# MAGIC - **Schema on read**: Spark infers schema from the XML structure — types preserved better than JSON
+# MAGIC - **Largest format**: Verbose tag overhead — typically 2x larger than JSON, 20x larger than ORC
+# MAGIC - **Legacy systems**: Common in SOAP APIs, enterprise systems, config files, RSS/Atom feeds
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col, rand, expr, struct
+
+VOLUME_PATH = "/Volumes/demo/delta/file_formats"
+
+# --- 1. Write flat data as XML ---
+sample_df = spark.range(10000).select(
+    col("id").alias("event_id"),
+    (col("id") % 100).alias("user_id"),
+    expr("CASE WHEN id % 3 = 0 THEN 'click' WHEN id % 3 = 1 THEN 'view' ELSE 'purchase' END").alias("event_type"),
+    (rand() * 1000).alias("value"),
+    expr("date_add(date('2025-01-01'), cast(id % 365 as int))").alias("event_date"),
+)
+
+# Write as XML with rootTag and rowTag
+sample_df.write.mode("overwrite").format("xml").option("rootTag", "events").option("rowTag", "event").save(f"{VOLUME_PATH}/xml_data")
+print("✅ Wrote XML files (rootTag='events', rowTag='event')")
+
+# --- 2. Read and inspect schema ---
+print("\n📋 XML schema (inferred — note type preservation):")
+xml_df = spark.read.format("xml").option("rowTag", "event").load(f"{VOLUME_PATH}/xml_data")
+xml_df.printSchema()
+print(f"   Row count: {xml_df.count()}")
+print("   ✅ event_date preserved as date — XML retains type info better than JSON")
+
+# --- 3. Nested XML (struct fields become child elements) ---
+print("\n🏗️ Nested XML with struct field:")
+nested_df = spark.range(1000).select(
+    col("id").alias("id"),
+    struct(
+        col("id").alias("user_id"),
+        expr("CASE WHEN id % 3 = 0 THEN 'click' WHEN id % 3 = 1 THEN 'view' ELSE 'purchase' END").alias("event_type"),
+    ).alias("event"),
+    (rand() * 1000).alias("value"),
+    expr("date_add(date('2025-01-01'), cast(id % 365 as int))").alias("event_date"),
+)
+nested_df.write.mode("overwrite").format("xml").option("rootTag", "events").option("rowTag", "event").save(f"{VOLUME_PATH}/xml_nested")
+
+nested_read = spark.read.format("xml").option("rowTag", "event").load(f"{VOLUME_PATH}/xml_nested")
+nested_read.printSchema()
+print(f"   Rows: {nested_read.count()} — struct field read back as nested element")
+
+# --- 4. Complete 8-format file size comparison ---
+print("\n📊 Complete file size comparison (10,000 rows, same flat data):")
+print("─" * 60)
+formats = [
+    ("ORC (columnar)",        f"{VOLUME_PATH}/orc_data",       ".orc"),
+    ("Parquet (zstd)",        f"{VOLUME_PATH}/parquet_zstd",   ".parquet"),
+    ("Parquet (gzip)",        f"{VOLUME_PATH}/parquet_gzip",   ".parquet"),
+    ("Parquet (snappy)",      f"{VOLUME_PATH}/parquet_snappy", ".parquet"),
+    ("Avro (row-based)",      f"{VOLUME_PATH}/avro_data",      ".avro"),
+    ("CSV (with header)",     f"{VOLUME_PATH}/csv_data",       ".csv"),
+    ("JSON (NDJSON)",        f"{VOLUME_PATH}/json_data",      ".json"),
+    ("XML (rowTag)",         f"{VOLUME_PATH}/xml_data",        ".xml"),
+]
+for fmt_name, fmt_path, ext in formats:
+    files = dbutils.fs.ls(fmt_path)
+    data_files = [f for f in files if f.name.endswith(ext)]
+    total = sum(f.size for f in data_files)
+    print(f"   {fmt_name:25s}: {total / 1024:.1f} KB")
+print("─" * 60)
+print("   💡 XML is the largest format — verbose opening/closing tags per field")
+print("   💡 XML preserves types better than JSON (dates stay as dates)")
+print("   💡 Binary formats are 10-20x smaller than XML")
+
+# --- 5. Final format decision guide (all 8 formats) ---
+print("\n📊 Final File Format Decision Guide (8 formats):")
+print("─" * 80)
+print(f"{'Format':<12} {'Layout':<12} {'Compression':<14} {'Type Safety':<14} {'Best For':<28}")
+print("─" * 80)
+print(f"{'Delta':<12} {'Col+log':<12} {'Built-in':<14} {'Full':<14} {'Databricks default (ACID)':<28}")
+print(f"{'Parquet':<12} {'Columnar':<12} {'snappy/gzip/zstd':<14} {'Full':<14} {'Analytics, data exchange':<28}")
+print(f"{'ORC':<12} {'Columnar':<12} {'snappy/zlib':<14} {'Full':<14} {'Hive/Presto, best compression':<28}")
+print(f"{'Avro':<12} {'Row-based':<12} {'snappy/deflate':<14} {'Schema':<14} {'Kafka, event streaming':<28}")
+print(f"{'Iceberg':<12} {'Col+meta':<12} {'Built-in':<14} {'Full':<14} {'Multi-engine (Trino+Flink)':<28}")
+print(f"{'JSON':<12} {'Text':<12} {'None':<14} {'Lossy':<14} {'APIs, logs, nested data':<28}")
+print(f"{'CSV':<12} {'Text':<12} {'None':<14} {'Lossy':<14} {'Exports, human-readable':<28}")
+print(f"{'XML':<12} {'Text':<12} {'None':<14} {'Partial':<14} {'SOAP, legacy enterprise, RSS':<28}")
+print("─" * 80)
+print("\n💡 Summary:")
+print("   Smallest: ORC (93 KB) → Parquet (120 KB) → Avro (170 KB) → CSV (426 KB) → JSON (1022 KB) → XML (2087 KB)")
+print("   On Databricks: Delta for everything; JSON/CSV/XML for ingestion; convert to Delta for storage & analytics")
+
+# COMMAND ----------
+
 # DBTITLE 1,Key Takeaways
 # MAGIC %md
 # MAGIC # Key Takeaways
@@ -745,6 +848,7 @@ print("   On Databricks: Delta (Parquet-based) for everything; JSON/CSV for inge
 # MAGIC | **Apache ORC** | Columnar format — Hive/Presto native, built-in indexes, excellent compression |
 # MAGIC | **JSON** | Text-based, schema on read — APIs, logs, nested/semi-structured data |
 # MAGIC | **CSV** | Text-based, human-readable — universal data exchange, exports, no compression |
+# MAGIC | **XML** | Text-based, tag-structured — SOAP/legacy enterprise, nested elements, preserves types |
 # MAGIC
 # MAGIC ## Best Practices
 # MAGIC 1. **Enable CDF before you need it** — cannot retroactively enable for past changes
@@ -758,6 +862,7 @@ print("   On Databricks: Delta (Parquet-based) for everything; JSON/CSV for inge
 # MAGIC 9. **ORC for Hive ecosystems** — columnar like Parquet, best compression, Presto/Trino native
 # MAGIC 10. **JSON/CSV for ingestion** — text formats for external sources; convert to Delta for storage and analytics
 # MAGIC 11. **Use explicit schema for CSV** — `inferSchema=true` is slow and may guess wrong types
+# MAGIC 12. **XML for legacy systems** — SOAP APIs, enterprise integrations; largest format, convert to Delta ASAP
 
 # COMMAND ----------
 

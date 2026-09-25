@@ -132,8 +132,9 @@ The Databricks Data + AI Platform is organised into 12 domains. Each domain solv
 | Apache ORC | Columnar | snappy/zlib | Hive/Presto ecosystems, best compression for analytics |
 | JSON | Text | None | APIs, logs, semi-structured/nested data, event ingestion |
 | CSV | Text | None | Data exchange, exports, human-readable, external source ingestion |
+| XML | Text | None | SOAP APIs, legacy enterprise systems, RSS/Atom feeds, config files |
 
-**Module 03 demonstrates all seven formats** with side-by-side comparison: Parquet compression codecs, predicate pushdown, column pruning; Iceberg Delta UniForm snapshots and time travel; Avro row-based read/write; ORC columnar read/write with predicate pushdown; JSON schema inference and type loss; CSV with explicit schema; full 7-format file size comparison (ORC 93 KB \< Parquet 120 KB \< Avro 170 KB \< CSV 426 KB \< JSON 1022 KB); complete format decision guide.
+**Module 03 demonstrates all eight formats** with side-by-side comparison: Parquet compression codecs, predicate pushdown, column pruning; Iceberg Delta UniForm snapshots and time travel; Avro row-based read/write; ORC columnar read/write with predicate pushdown; JSON schema inference and type loss; CSV with explicit schema; XML with rowTag/rootTag and nested elements; full 8-format file size comparison (ORC 93 KB \< Parquet 120 KB \< Avro 170 KB \< CSV 426 KB \< JSON 1022 KB \< XML 2087 KB); complete format decision guide.
 
 **Modules**: 01 (Medallion Fundamentals), 03 (Delta Lake Advanced)
 
